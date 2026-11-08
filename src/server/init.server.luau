@@ -1,7 +1,7 @@
 --[[
-    HORROR GAME - SEWER LEVEL V2
+    HORROR GAME - SEWER LEVEL V4
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
-    pump room, service details, ceiling lights and an inventory flashlight Tool.
+    pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
 
 local Lighting = game:GetService("Lighting")
@@ -434,8 +434,8 @@ local function buildBranchAndPumpRoom()
     part("Pump_Room_Left_Wall", Vector3.new(1, 14, 48), Vector3.new(10, -3.5, 134), Enum.Material.Concrete, concrete, room)
     part("Pump_Room_Right_Wall", Vector3.new(1, 14, 48), Vector3.new(60, -3.5, 134), Enum.Material.Concrete, concrete, room)
     -- Rear wall split around a doorway for the extended east drain passage.
-    part("Pump_Room_Back_Wall_Left", Vector3.new(18, 14, 1), Vector3.new(19, -3.5, 158), Enum.Material.Concrete, concrete, room)
-    part("Pump_Room_Back_Wall_Right", Vector3.new(18, 14, 1), Vector3.new(51, -3.5, 158), Enum.Material.Concrete, concrete, room)
+    part("Pump_Room_Back_Wall_Left", Vector3.new(16, 14, 1), Vector3.new(18, -3.5, 158), Enum.Material.Concrete, concrete, room)
+    part("Pump_Room_Back_Wall_Right", Vector3.new(16, 14, 1), Vector3.new(52, -3.5, 158), Enum.Material.Concrete, concrete, room)
     part("Pump_Room_Back_Header", Vector3.new(14, 2, 1), Vector3.new(35, 2.5, 158), Enum.Material.Concrete, concreteDark, room)
 
     -- Front wall is split around the connected branch entrance at z=110.
@@ -573,12 +573,13 @@ local function buildEastDrainExtension()
     part("Sluice_East_Wall", Vector3.new(1, 14, 44), Vector3.new(185, -3.5, 262), Enum.Material.Concrete, concrete, chamber)
     part("Sluice_North_Wall", Vector3.new(50, 14, 1), Vector3.new(160, -3.5, 240), Enum.Material.Concrete, concrete, chamber)
     part("Sluice_South_Wall", Vector3.new(50, 14, 1), Vector3.new(160, -3.5, 284), Enum.Material.Concrete, concrete, chamber)
-    part("Sluice_Entry_North", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 255.5), Enum.Material.Concrete, concrete, chamber)
-    part("Sluice_Entry_South", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 268.5), Enum.Material.Concrete, concrete, chamber)
+    part("Sluice_Entry_North", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 246.5), Enum.Material.Concrete, concrete, chamber)
+    part("Sluice_Entry_South", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 277.5), Enum.Material.Concrete, concrete, chamber)
     part("Sluice_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(135, 2.5, 262), Enum.Material.Concrete, concreteDark, chamber)
 
     addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 44, 5.2, chamber, 1)
     local tank = cylinder("Sluice_Filter_Tank", 11, 8, Vector3.new(174, -4.1, 270), Enum.Material.Metal, Color3.fromRGB(67, 76, 69), chamber, Vector3.new(0, 0, 90))
+    tank.Material = Enum.Material.CorrodedMetal
     part("Sluice_Tank_Cap", Vector3.new(8.5, 0.45, 8.5), Vector3.new(174, 1.05, 270), Enum.Material.Metal, rust, chamber)
     local emergency = part("Sluice_Red_Lamp", Vector3.new(3, 0.25, 1), Vector3.new(160, 3.2, 247), Enum.Material.Neon, Color3.fromRGB(176, 50, 39), chamber)
     emergency.CanCollide = false
