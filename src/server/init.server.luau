@@ -99,7 +99,9 @@ local function addFlowingWater(name, axis, center, length, width, parent, flowDi
         or Vector3.new(width, 4, length)
 
     local terrain = Workspace.Terrain
-    local waterTop = 0.72
+    -- Exact voxel-aligned surface: water ends at world Y=0, half a stud below
+    -- the walkways. Its two-stud depth sits inside the lowered concrete bed.
+    local waterTop = 0
     local waterFrame = CFrame.new(center.X, waterTop - 2, center.Z)
 
     -- Clear only the channel volume, then fill it with real Terrain Water.
@@ -108,13 +110,13 @@ local function addFlowingWater(name, axis, center, length, width, parent, flowDi
 
     -- Raised concrete banks contain the water and make the channel read as a
     -- recessed drain instead of a flat painted stripe on the walking floor.
-    local bankY = -9.74
+    local bankY = -10.25
     local bankColor = Color3.fromRGB(67, 72, 66)
     if axis == "X" then
         for _, side in ipairs({-1, 1}) do
             part(
                 name .. "_Raised_Channel_Bank",
-                Vector3.new(length, 0.5, 0.55),
+                Vector3.new(length, 1.0, 0.55),
                 Vector3.new(center.X, bankY, center.Z + side * 4.0),
                 Enum.Material.Concrete,
                 bankColor,
@@ -125,7 +127,7 @@ local function addFlowingWater(name, axis, center, length, width, parent, flowDi
         for _, side in ipairs({-1, 1}) do
             part(
                 name .. "_Raised_Channel_Bank",
-                Vector3.new(0.55, 0.5, length),
+                Vector3.new(0.55, 1.0, length),
                 Vector3.new(center.X + side * 4.0, bankY, center.Z),
                 Enum.Material.Concrete,
                 bankColor,
@@ -261,11 +263,71 @@ local function addCeilingLamp(position, parent, name, color, brightness, range)
     return fixture
 end
 
+-- Builds a recessed channel floor: two dry walking ledges and a lowered
+-- concrete riverbed. Axis X means the tunnel runs left/right; Z means forward.
+local function buildChannelFloor(name, axis, center, length, totalWidth, channelWidth, parent)
+    local walkWidth = (totalWidth - channelWidth) / 2
+    local offset = channelWidth / 2 + walkWidth / 2
+    local bedCenterY = center.Y - 2.25
+
+    if axis == "X" then
+        part(
+            name .. "_Left_Walkway",
+            Vector3.new(length, 1, walkWidth),
+            Vector3.new(center.X, center.Y, center.Z - offset),
+            Enum.Material.Concrete,
+            concrete,
+            parent
+        )
+        part(
+            name .. "_Right_Walkway",
+            Vector3.new(length, 1, walkWidth),
+            Vector3.new(center.X, center.Y, center.Z + offset),
+            Enum.Material.Concrete,
+            concrete,
+            parent
+        )
+        part(
+            name .. "_Lowered_Channel_Bed",
+            Vector3.new(length, 0.5, channelWidth),
+            Vector3.new(center.X, bedCenterY, center.Z),
+            Enum.Material.Slate,
+            concreteDark,
+            parent
+        )
+    else
+        part(
+            name .. "_Left_Walkway",
+            Vector3.new(walkWidth, 1, length),
+            Vector3.new(center.X - offset, center.Y, center.Z),
+            Enum.Material.Concrete,
+            concrete,
+            parent
+        )
+        part(
+            name .. "_Right_Walkway",
+            Vector3.new(walkWidth, 1, length),
+            Vector3.new(center.X + offset, center.Y, center.Z),
+            Enum.Material.Concrete,
+            concrete,
+            parent
+        )
+        part(
+            name .. "_Lowered_Channel_Bed",
+            Vector3.new(channelWidth, 0.5, length),
+            Vector3.new(center.X, bedCenterY, center.Z),
+            Enum.Material.Slate,
+            concreteDark,
+            parent
+        )
+    end
+end
+
 local function buildMainTunnel()
     local tunnel = makeModel("Main_Sewer_Tunnel")
 
     -- Flat, continuous walking floor and tall side walls.
-    part("Main_Walking_Floor", Vector3.new(320, 1, 18), Vector3.new(40, -10.5, 0), Enum.Material.Concrete, concrete, tunnel)
+    buildChannelFloor("Main", "X", Vector3.new(40, -10.5, 0), 320, 18, 8, tunnel)
 
     -- Two gaps in the long side walls create real junctions for the branch tunnels.
     part("Main_Left_Side_Wall_A", Vector3.new(62, 7, 1), Vector3.new(-89, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
@@ -451,7 +513,7 @@ local function buildBranchAndPumpRoom()
     local branch = makeModel("Pump_Room_Access")
 
     -- Branch tunnel joins the opening in the main tunnel's right-hand wall.
-    part("Branch_Walking_Floor", Vector3.new(18, 1, 104), Vector3.new(35, -10.5, 60), Enum.Material.Concrete, concrete, branch)
+    buildChannelFloor("Branch", "Z", Vector3.new(35, -10.5, 60), 104, 18, 8, branch)
     part("Branch_Left_Wall", Vector3.new(1, 7, 104), Vector3.new(26, -6.5, 60), Enum.Material.Concrete, concrete, branch)
     part("Branch_Right_Wall", Vector3.new(1, 7, 104), Vector3.new(44, -6.5, 60), Enum.Material.Concrete, concrete, branch)
     buildArch("Z", 35, 60, -3, 7.5, 104, branch, "Branch", Enum.Material.Concrete, concreteDark, 1.55)
@@ -475,7 +537,7 @@ local function buildBranchAndPumpRoom()
 
     -- A broad pump chamber sits at the end of the side tunnel.
     local room = makeModel("Old_Pump_Room")
-    part("Pump_Room_Floor", Vector3.new(50, 1, 48), Vector3.new(35, -10.5, 134), Enum.Material.Concrete, concrete, room)
+    buildChannelFloor("Pump_Room", "Z", Vector3.new(35, -10.5, 134), 48, 50, 8, room)
     part("Pump_Room_Ceiling", Vector3.new(50, 1.5, 48), Vector3.new(35, 4.15, 134), Enum.Material.Concrete, concreteDark, room)
     part("Pump_Room_Left_Wall", Vector3.new(1, 14, 48), Vector3.new(10, -3.5, 134), Enum.Material.Concrete, concrete, room)
     part("Pump_Room_Right_Wall", Vector3.new(1, 14, 48), Vector3.new(60, -3.5, 134), Enum.Material.Concrete, concrete, room)
@@ -564,7 +626,7 @@ local function buildWestServiceRoute()
     local route = makeModel("West_Service_Route")
 
     -- From the left-hand junction, the passage runs north and makes a clear 90-degree turn west.
-    part("West_Leg_Floor", Vector3.new(18, 1, 108), Vector3.new(-50, -10.5, -62), Enum.Material.Concrete, concrete, route)
+    buildChannelFloor("West_Leg", "Z", Vector3.new(-50, -10.5, -62), 108, 18, 8, route)
     -- Stop the vertical side walls before the elbow so they do not block the 90-degree turn.
     part("West_Leg_Left_Wall", Vector3.new(1, 7, 90), Vector3.new(-59, -6.5, -53), Enum.Material.Concrete, concrete, route)
     part("West_Leg_Right_Wall", Vector3.new(1, 7, 90), Vector3.new(-41, -6.5, -53), Enum.Material.Concrete, concrete, route)
@@ -583,7 +645,7 @@ local function buildWestServiceRoute()
     cylinder("West_Leg_Service_Pipe", 90, 0.62, Vector3.new(-42, -5.2, -53), Enum.Material.CorrodedMetal, rust, route, Vector3.new(0, 90, 0))
 
     -- The bend is a full-width elbow: this tunnel heads west after the northbound run.
-    part("West_Turn_Floor", Vector3.new(120, 1, 18), Vector3.new(-100, -10.5, -108), Enum.Material.Concrete, concrete, route)
+    buildChannelFloor("West_Turn", "X", Vector3.new(-100, -10.5, -108), 120, 18, 8, route)
     part("West_Turn_North_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -99), Enum.Material.Concrete, concrete, route)
     part("West_Turn_South_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -117), Enum.Material.Concrete, concrete, route)
     buildArch("X", -100, -108, -3, 7.5, 120, route, "West_Turn", Enum.Material.Concrete, concreteDark, 1.55)
@@ -599,7 +661,7 @@ local function buildWestServiceRoute()
 
     -- A remote valve chamber closes the long west route.
     local chamber = makeModel("West_Valve_Chamber", route)
-    part("West_Chamber_Floor", Vector3.new(50, 1, 46), Vector3.new(-185, -10.5, -108), Enum.Material.Concrete, concrete, chamber)
+    buildChannelFloor("West_Chamber", "X", Vector3.new(-185, -10.5, -108), 50, 46, 8, chamber)
     part("West_Chamber_Ceiling", Vector3.new(50, 1.5, 46), Vector3.new(-185, 4.0, -108), Enum.Material.Concrete, concreteDark, chamber)
     part("West_Chamber_West_Wall", Vector3.new(1, 14, 46), Vector3.new(-210, -3.5, -108), Enum.Material.Concrete, concrete, chamber)
     part("West_Chamber_North_Wall", Vector3.new(50, 14, 1), Vector3.new(-185, -3.5, -131), Enum.Material.Concrete, concrete, chamber)
@@ -621,7 +683,7 @@ local function buildEastDrainExtension()
     local route = makeModel("East_Drain_Extension")
 
     -- Continue straight out of the pump room, then turn east at the end.
-    part("East_Leg_Floor", Vector3.new(18, 1, 108), Vector3.new(35, -10.5, 210), Enum.Material.Concrete, concrete, route)
+    buildChannelFloor("East_Leg", "Z", Vector3.new(35, -10.5, 210), 108, 18, 8, route)
     -- End the vertical side walls at the elbow entrance; the turn itself stays open.
     part("East_Leg_Left_Wall", Vector3.new(1, 7, 97), Vector3.new(26, -6.5, 204.5), Enum.Material.Concrete, concrete, route)
     part("East_Leg_Right_Wall", Vector3.new(1, 7, 97), Vector3.new(44, -6.5, 204.5), Enum.Material.Concrete, concrete, route)
@@ -637,7 +699,7 @@ local function buildEastDrainExtension()
     end
 
     -- Extend the elbow west far enough to overlap the full incoming side tunnel.
-    part("East_Turn_Floor", Vector3.new(119, 1, 18), Vector3.new(85.5, -10.5, 262), Enum.Material.Concrete, concrete, route)
+    buildChannelFloor("East_Turn", "X", Vector3.new(85.5, -10.5, 262), 119, 18, 8, route)
     -- Leave the south-side wall open across x=26..44: this is the actual doorway
     -- from the long east leg, not a wall directly in front of the player.
     part("East_Turn_North_Wall", Vector3.new(101, 7, 1), Vector3.new(94.5, -6.5, 253), Enum.Material.Concrete, concrete, route)
@@ -655,7 +717,7 @@ local function buildEastDrainExtension()
 
     -- A final sluice chamber, with a doorway at its west side.
     local chamber = makeModel("East_Sluice_Chamber", route)
-    part("Sluice_Floor", Vector3.new(50, 1, 44), Vector3.new(160, -10.5, 262), Enum.Material.Concrete, concrete, chamber)
+    buildChannelFloor("Sluice", "X", Vector3.new(160, -10.5, 262), 50, 44, 8, chamber)
     part("Sluice_Ceiling", Vector3.new(50, 1.5, 44), Vector3.new(160, 4.0, 262), Enum.Material.Concrete, concreteDark, chamber)
     part("Sluice_East_Wall", Vector3.new(1, 14, 44), Vector3.new(185, -3.5, 262), Enum.Material.Concrete, concrete, chamber)
     part("Sluice_North_Wall", Vector3.new(50, 14, 1), Vector3.new(160, -3.5, 240), Enum.Material.Concrete, concrete, chamber)
