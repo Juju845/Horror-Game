@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V8
+    HORROR GAME - SEWER LEVEL V9
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -102,9 +102,32 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
     -- Exact voxel-aligned surface: water ends at world Y=0, below the walkways.
     local waterFrame = CFrame.new(center.X, -2, center.Z)
 
-    -- Clear only the channel volume, then fill it with native Terrain Water.
-    terrain:FillBlock(waterFrame, size, Enum.Material.Air)
-    terrain:FillBlock(waterFrame, size, Enum.Material.Water)
+    -- Clear and refill only the channel volume. Terrain editing can be restricted
+    -- by Studio sandbox capabilities, so keep a safe visual fallback if unavailable.
+    local terrainWaterOk, terrainWaterError = pcall(function()
+        terrain:FillBlock(waterFrame, size, Enum.Material.Air)
+        terrain:FillBlock(waterFrame, size, Enum.Material.Water)
+    end)
+
+    if not terrainWaterOk then
+        warn("[Horror Game] Terrain water unavailable; using a surface fallback: " .. tostring(terrainWaterError))
+        local fallbackSize = axis == "X"
+            and Vector3.new(length, 0.12, width)
+            or Vector3.new(width, 0.12, length)
+        local surface = part(
+            name .. "_Water_Surface_Fallback",
+            fallbackSize,
+            Vector3.new(center.X, -10.56, center.Z),
+            Enum.Material.Glass,
+            Color3.fromRGB(58, 62, 50),
+            parent,
+            0.18
+        )
+        surface.CanCollide = false
+        surface.CanTouch = false
+        surface.CanQuery = false
+        surface.Reflectance = 0.18
+    end
 
     -- At an elbow, shorten the concrete banks around the joining passage.
     -- This keeps each stream open through the junction instead of making a curb wall.
@@ -188,11 +211,16 @@ local function configureLighting()
     Lighting.EnvironmentSpecularScale = 0.32
 
     local terrain = Workspace.Terrain
-    terrain.WaterColor = Color3.fromRGB(58, 62, 50)
-    terrain.WaterReflectance = 0.24
-    terrain.WaterTransparency = 0.14
-    terrain.WaterWaveSize = 0.24
-    terrain.WaterWaveSpeed = 10
+    local waterSettingsOk, waterSettingsError = pcall(function()
+        terrain.WaterColor = Color3.fromRGB(58, 62, 50)
+        terrain.WaterReflectance = 0.24
+        terrain.WaterTransparency = 0.14
+        terrain.WaterWaveSize = 0.24
+        terrain.WaterWaveSpeed = 10
+    end)
+    if not waterSettingsOk then
+        warn("[Horror Game] Terrain water settings restricted; fallback water surfaces will be used: " .. tostring(waterSettingsError))
+    end
 
     for _, name in ipairs({"SewerAtmosphere", "SewerColor", "SewerBloom"}) do
         local old = Lighting:FindFirstChild(name)
@@ -903,4 +931,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V8 loaded: recessed Terrain-water channels, clear 90-degree entrances, longer sealed routes and tuned industrial lighting. No flashlight.")
+print("[Horror Game] Sewer V9 loaded: recessed native-water channels with a sandbox-safe fallback, clear 90-degree entrances, sealed routes and tuned industrial lighting. No flashlight.")
