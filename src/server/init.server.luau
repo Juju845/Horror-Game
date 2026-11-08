@@ -450,12 +450,11 @@ local function addLamp(name, position, parent, brightness, range, tint)
     fill.Parent = housing
 end
 
-local function addWallPanelsX(name, first, last, centerZ, halfWidth, parent, gaps)
-    local wallZ = centerZ + (centerZ >= 0 and -1 or 1) * (halfWidth - 0.2)
-    -- Explicit wall side positions keep panels mounted on the inside faces.
+local function addWallPanelsX(name, first, last, centerZ, halfWidth, parent, negativeGaps, positiveGaps)
+    -- Panels are mounted just inside the concrete face, not buried inside the wall.
     for _, side in ipairs({-1, 1}) do
-        local z = centerZ + side * (halfWidth - 0.17)
-        local sideGaps = gaps or {}
+        local z = centerZ + side * (halfWidth - 1.2)
+        local sideGaps = side < 0 and (negativeGaps or {}) or (positiveGaps or {})
         for _, segment in ipairs(segmentsWithoutGaps(first, last, sideGaps)) do
             for x = segment[1] + 6, segment[2] - 5, 14 do
                 local panel = part(name .. "_Armoured_Wall_Module", Vector3.new(10.4, 4.2, 0.16), Vector3.new(x, -4.8, z), Enum.Material.DiamondPlate, Color3.fromRGB(46, 59, 62), parent, 0, false)
@@ -478,7 +477,8 @@ end
 
 local function addWallPanelsZ(name, first, last, centerX, halfWidth, parent)
     for _, side in ipairs({-1, 1}) do
-        local x = centerX + side * (halfWidth - 0.17)
+        -- Panels sit just inside the inner face of the tunnel wall.
+        local x = centerX + side * (halfWidth - 1.2)
         for z = first + 6, last - 5, 14 do
             part(name .. "_Armoured_Wall_Module", Vector3.new(0.16, 4.2, 10.4), Vector3.new(x, -4.8, z), Enum.Material.DiamondPlate, Color3.fromRGB(46, 59, 62), parent, 0, false)
             for _, offset in ipairs({-4.95, 4.95}) do
@@ -495,19 +495,28 @@ local function addWallPanelsZ(name, first, last, centerX, halfWidth, parent)
     end
 end
 
-local function addPipeRunX(name, first, last, centerZ, side, parent)
-    local z = centerZ + side * 14.2
-    local mainPipe = cylinder(name .. "_Primary_Pressure_Main", last - first, 1.05, Vector3.new((first + last) / 2, -4.6, z), Enum.Material.CorrodedMetal, C.rust, parent)
-    mainPipe.Reflectance = 0.1
-    cylinder(name .. "_Secondary_Service_Line", last - first, 0.48, Vector3.new((first + last) / 2, -2.7, z - side * 1.5), Enum.Material.Metal, C.steelMid, parent)
-    cylinder(name .. "_Cable_Conduit", last - first, 0.24, Vector3.new((first + last) / 2, -1.7, z - side * 2.6), Enum.Material.Metal, C.steelBright, parent)
+local function addPipeRunX(name, first, last, centerZ, side, parent, gaps)
+    -- Stop large wall-mounted pipes before every door opening. This keeps the
+    -- side routes fully clear instead of running a pipe through the entrance.
+    for _, segment in ipairs(segmentsWithoutGaps(first, last, gaps)) do
+        local segmentStart, segmentEnd = segment[1], segment[2]
+        local segmentLength = segmentEnd - segmentStart
+        if segmentLength > 8 then
+            local z = centerZ + side * 14.2
+            local middle = (segmentStart + segmentEnd) / 2
+            local mainPipe = cylinder(name .. "_Primary_Pressure_Main", segmentLength, 1.05, Vector3.new(middle, -4.6, z), Enum.Material.CorrodedMetal, C.rust, parent)
+            mainPipe.Reflectance = 0.1
+            cylinder(name .. "_Secondary_Service_Line", segmentLength, 0.48, Vector3.new(middle, -2.7, z - side * 1.5), Enum.Material.Metal, C.steelMid, parent)
+            cylinder(name .. "_Cable_Conduit", segmentLength, 0.24, Vector3.new(middle, -1.7, z - side * 2.6), Enum.Material.Metal, C.steelBright, parent)
 
-    for x = first + 12, last - 10, 18 do
-        part(name .. "_Pipe_Saddle", Vector3.new(0.9, 1.3, 1.1), Vector3.new(x, -4.6, z), Enum.Material.Metal, C.steel, parent)
-    end
-    for x = first + 24, last - 16, 48 do
-        local flange = cylinder(name .. "_Bolted_Flange", 0.24, 1.32, Vector3.new(x, -4.6, z), Enum.Material.CorrodedMetal, C.rustDark, parent)
-        flange.Reflectance = 0.08
+            for x = segmentStart + 12, segmentEnd - 10, 18 do
+                part(name .. "_Pipe_Saddle", Vector3.new(0.9, 1.3, 1.1), Vector3.new(x, -4.6, z), Enum.Material.Metal, C.steel, parent)
+            end
+            for x = segmentStart + 24, segmentEnd - 16, 48 do
+                local flange = cylinder(name .. "_Bolted_Flange", 0.24, 1.32, Vector3.new(x, -4.6, z), Enum.Material.CorrodedMetal, C.rustDark, parent)
+                flange.Reflectance = 0.08
+            end
+        end
     end
 end
 
@@ -552,9 +561,9 @@ local function buildTunnelX(name, first, last, centerZ, width, parent, negativeG
     addRiverWallsX(name, first, last, centerZ, channel, model, bridges)
     addBridgesX(name, bridges, centerZ, model)
 
-    addWallPanelsX(name, first + 6, last - 6, centerZ, half, model, negativeGaps)
-    addPipeRunX(name .. "_South", first + 4, last - 4, centerZ, -1, model)
-    addPipeRunX(name .. "_North", first + 4, last - 4, centerZ, 1, model)
+    addWallPanelsX(name, first + 6, last - 6, centerZ, half, model, negativeGaps, positiveGaps)
+    addPipeRunX(name .. "_South", first + 4, last - 4, centerZ, -1, model, negativeGaps)
+    addPipeRunX(name .. "_North", first + 4, last - 4, centerZ, 1, model, positiveGaps)
     addWalkwayLinesX(name, first + 3, last - 3, centerZ, model, channel / 2)
 
     for x = first + 18, last - 12, 28 do
@@ -661,8 +670,9 @@ local function buildPumpHall()
     end
 
     -- Two huge pump skids stand on the dry platforms either side of the river.
-    addPumpAssembly("Pump_Alpha", Vector3.new(-83, -6.5, -155), hall, 1.2)
-    addPumpAssembly("Pump_Beta", Vector3.new(-27, -6.5, -177), hall, 1.2)
+    -- Machine skids sit directly on the dry floor instead of floating above it.
+    addPumpAssembly("Pump_Alpha", Vector3.new(-83, -9.0, -155), hall, 1.2)
+    addPumpAssembly("Pump_Beta", Vector3.new(-27, -9.0, -177), hall, 1.2)
 
     for _, z in ipairs({-188, -144}) do
         cylinder("Pump_Hall_Overhead_Header", 70, 1.15, Vector3.new(centerX, 4.5, z), Enum.Material.CorrodedMetal, C.rust, hall)
