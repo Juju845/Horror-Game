@@ -276,7 +276,14 @@ local function buildMainTunnel()
     -- Extended arched roof and repeating steel support frames.
     buildArch("X", 40, 0, -3, 7.5, 320, tunnel, "Main", Enum.Material.Concrete, concreteDark, 1.55)
     local ribPositions = {}
-    for x = -112, 192, 16 do table.insert(ribPositions, x) end
+    for x = -112, 192, 16 do
+        -- No full arch rib directly across either side-tunnel portal.
+        local atLeftPortal = x >= -64 and x <= -32
+        local atRightPortal = x >= 24 and x <= 48
+        if not atLeftPortal and not atRightPortal then
+            table.insert(ribPositions, x)
+        end
+    end
     buildArchRibs("X", 0, 0, -3, 7.02, ribPositions, tunnel, "Main")
 
     -- The main stream branches into the side corridors at both junctions.
@@ -563,7 +570,10 @@ local function buildWestServiceRoute()
     part("West_Leg_Right_Wall", Vector3.new(1, 7, 90), Vector3.new(-41, -6.5, -53), Enum.Material.Concrete, concrete, route)
     buildArch("Z", -50, -62, -3, 7.5, 108, route, "West_Leg", Enum.Material.Concrete, concreteDark, 1.55)
     local ribs = {}
-    for z = -108, -16, 16 do table.insert(ribs, z) end
+    for z = -108, -16, 16 do
+        -- Leave the final elbow bay free of a cross-frame.
+        if z > -100 then table.insert(ribs, z) end
+    end
     buildArchRibs("Z", -50, -62, -3, 7.02, ribs, route, "West_Leg")
     addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 7.2, route, 1)
     for z = -96, -24, 30 do
@@ -578,7 +588,9 @@ local function buildWestServiceRoute()
     part("West_Turn_South_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -117), Enum.Material.Concrete, concrete, route)
     buildArch("X", -100, -108, -3, 7.5, 120, route, "West_Turn", Enum.Material.Concrete, concreteDark, 1.55)
     local turnRibs = {}
-    for x = -152, -48, 16 do table.insert(turnRibs, x) end
+    for x = -152, -48, 16 do
+        if x < -64 or x > -40 then table.insert(turnRibs, x) end
+    end
     buildArchRibs("X", -100, -108, -3, 7.02, turnRibs, route, "West_Turn")
     addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 7.2, route, 1)
     for x = -144, -64, 30 do
@@ -615,7 +627,9 @@ local function buildEastDrainExtension()
     part("East_Leg_Right_Wall", Vector3.new(1, 7, 97), Vector3.new(44, -6.5, 204.5), Enum.Material.Concrete, concrete, route)
     buildArch("Z", 35, 210, -3, 7.5, 108, route, "East_Leg", Enum.Material.Concrete, concreteDark, 1.55)
     local ribs = {}
-    for z = 168, 252, 16 do table.insert(ribs, z) end
+    for z = 168, 252, 16 do
+        if z < 248 then table.insert(ribs, z) end
+    end
     buildArchRibs("Z", 35, 210, -3, 7.02, ribs, route, "East_Leg")
     addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 7.2, route, 1)
     for z = 180, 240, 30 do
@@ -630,7 +644,9 @@ local function buildEastDrainExtension()
     part("East_Turn_South_Wall", Vector3.new(119, 7, 1), Vector3.new(85.5, -6.5, 271), Enum.Material.Concrete, concrete, route)
     buildArch("X", 85.5, 262, -3, 7.5, 119, route, "East_Turn", Enum.Material.Concrete, concreteDark, 1.55)
     local turnRibs = {}
-    for x = 32, 144, 16 do table.insert(turnRibs, x) end
+    for x = 32, 144, 16 do
+        if x > 48 then table.insert(turnRibs, x) end
+    end
     buildArchRibs("X", 85.5, 262, -3, 7.02, turnRibs, route, "East_Turn")
     addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 7.2, route, 1)
     for x = 50, 130, 30 do
