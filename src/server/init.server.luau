@@ -531,43 +531,43 @@ local function addChannelBridge(name, axis, center, parent)
         part(name .. "_Under_Deck_Girder", girderSize, girderPosition, Enum.Material.Metal, metal, parent)
     end
 
-    -- Low twin handrails frame both sides without narrowing the walking deck.
+    -- Side rails run along the direction of crossing, never across its entrances.
     for _, side in ipairs({-1, 1}) do
-        for _, alongOffset in ipairs({-2.55, 2.55}) do
+        for _, alongOffset in ipairs({-3.35, 3.35}) do
             local postPosition
             if axis == "X" then
-                postPosition = Vector3.new(center.X + alongOffset, -9.165, center.Z + side * 4.18)
+                postPosition = Vector3.new(center.X + side * 2.7, -9.165, center.Z + alongOffset)
             else
-                postPosition = Vector3.new(center.X + side * 4.18, -9.165, center.Z + alongOffset)
+                postPosition = Vector3.new(center.X + alongOffset, -9.165, center.Z + side * 2.7)
             end
             part(name .. "_Handrail_Post", Vector3.new(0.18, 1.55, 0.18), postPosition, Enum.Material.Metal, Color3.fromRGB(45, 55, 55), parent)
         end
 
         local upperSize, upperPosition, lowerSize, lowerPosition
         if axis == "X" then
-            upperSize = Vector3.new(5.35, 0.16, 0.16)
-            upperPosition = Vector3.new(center.X, -8.38, center.Z + side * 4.18)
-            lowerSize = Vector3.new(5.35, 0.11, 0.11)
-            lowerPosition = Vector3.new(center.X, -9.15, center.Z + side * 4.18)
+            upperSize = Vector3.new(0.16, 0.16, 7.2)
+            upperPosition = Vector3.new(center.X + side * 2.7, -8.38, center.Z)
+            lowerSize = Vector3.new(0.11, 0.11, 7.2)
+            lowerPosition = Vector3.new(center.X + side * 2.7, -9.15, center.Z)
         else
-            upperSize = Vector3.new(0.16, 0.16, 5.35)
-            upperPosition = Vector3.new(center.X + side * 4.18, -8.38, center.Z)
-            lowerSize = Vector3.new(0.11, 0.11, 5.35)
-            lowerPosition = Vector3.new(center.X + side * 4.18, -9.15, center.Z)
+            upperSize = Vector3.new(7.2, 0.16, 0.16)
+            upperPosition = Vector3.new(center.X, -8.38, center.Z + side * 2.7)
+            lowerSize = Vector3.new(7.2, 0.11, 0.11)
+            lowerPosition = Vector3.new(center.X, -9.15, center.Z + side * 2.7)
         end
         part(name .. "_Upper_Handrail", upperSize, upperPosition, Enum.Material.Metal, Color3.fromRGB(91, 105, 101), parent)
         part(name .. "_Lower_Handrail", lowerSize, lowerPosition, Enum.Material.Metal, Color3.fromRGB(58, 70, 67), parent)
     end
 
-    -- Amber deck markers make crossings visible from a distance.
-    for _, endOffset in ipairs({-2.9, 2.9}) do
+    -- Amber entry markers sit at the two dry-walkway edges.
+    for _, side in ipairs({-1, 1}) do
         local markerSize, markerPosition
         if axis == "X" then
-            markerSize = Vector3.new(0.16, 0.08, 0.7)
-            markerPosition = Vector3.new(center.X + endOffset, -9.91, center.Z)
+            markerSize = Vector3.new(5.7, 0.08, 0.16)
+            markerPosition = Vector3.new(center.X, -9.91, center.Z + side * 4.12)
         else
-            markerSize = Vector3.new(0.7, 0.08, 0.16)
-            markerPosition = Vector3.new(center.X, -9.91, center.Z + endOffset)
+            markerSize = Vector3.new(0.16, 0.08, 5.7)
+            markerPosition = Vector3.new(center.X + side * 4.12, -9.91, center.Z)
         end
         local marker = part(name .. "_Amber_Crossing_Marker", markerSize, markerPosition, Enum.Material.Neon, yellow, parent)
         marker.CanCollide = false
