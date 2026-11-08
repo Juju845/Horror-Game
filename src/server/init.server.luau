@@ -412,7 +412,7 @@ local function buildBranchAndPumpRoom()
     buildArchRibs("Z", 35, 60, -3, 7.02, branchRibs, branch, "Branch")
 
     addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 98, 4.5, branch, 1)
-    for _, x in ipairs({33.2, 36.8}) do
+    for _, x in ipairs({32.55, 37.45}) do
         part("Branch_Channel_Curb", Vector3.new(0.35, 0.42, 98), Vector3.new(x, -9.76, 60), Enum.Material.Concrete, concreteDark, branch)
     end
 
