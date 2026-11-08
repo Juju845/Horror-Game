@@ -817,12 +817,12 @@ local function buildMainSewer()
 end
 
 local function buildWestRoute()
-    local branch = buildTunnelZ("West_Collector_Tunnel", -55, -17, -137, 30, world, {-42, -91, -122})
+    local branch = buildTunnelZ("West_Collector_Tunnel", -55, -17, -142, 30, world, {-42, -91, -128})
 
     -- Short lined water connector bridges the 12-stud offset between the
     -- branch channel mouth and the main concourse river.
-    part("West_T_Junction_Riverbed", Vector3.new(10, 1, 13), Vector3.new(-55, -12.5, -11), Enum.Material.Slate, C.concreteDark, world)
-    addWater("West_T_Junction_Water", "Z", -55, -9, 18, 10, world)
+    part("West_T_Junction_Riverbed", Vector3.new(10, 1, 24), Vector3.new(-55, -12.5, -8.5), Enum.Material.Slate, C.concreteDark, world)
+    addWater("West_T_Junction_Water", "Z", -55, -8.5, 24, 10, world)
     addRiverWallsZ("West_T_Junction", -17, -5, -55, 10, world, {})
 
     local hall = buildPumpHall()
