@@ -98,13 +98,13 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
         and Vector3.new(length, 4, width)
         or Vector3.new(width, 4, length)
 
-    local terrain = Workspace.Terrain
     -- Exact voxel-aligned surface: water ends at world Y=0, below the walkways.
     local waterFrame = CFrame.new(center.X, -2, center.Z)
 
-    -- Clear and refill only the channel volume. Terrain editing can be restricted
-    -- by Studio sandbox capabilities, so keep a safe visual fallback if unavailable.
+    -- Clear and refill only the channel volume. Terrain access/editing can be
+    -- restricted by Studio sandbox capabilities, so keep a safe visual fallback.
     local terrainWaterOk, terrainWaterError = pcall(function()
+        local terrain = Workspace.Terrain
         terrain:FillBlock(waterFrame, size, Enum.Material.Air)
         terrain:FillBlock(waterFrame, size, Enum.Material.Water)
     end)
@@ -210,8 +210,8 @@ local function configureLighting()
     Lighting.EnvironmentDiffuseScale = 0.56
     Lighting.EnvironmentSpecularScale = 0.32
 
-    local terrain = Workspace.Terrain
     local waterSettingsOk, waterSettingsError = pcall(function()
+        local terrain = Workspace.Terrain
         terrain.WaterColor = Color3.fromRGB(58, 62, 50)
         terrain.WaterReflectance = 0.24
         terrain.WaterTransparency = 0.14
