@@ -790,7 +790,7 @@ local function buildMainSewer()
         world,
         {{-55, 30}},
         {{65, 30}},
-        {-108, -22, 28, 91}
+        {-108, -55, -22, 28, 65, 91}
     )
 
     -- A sealed beginning and far end keep the player inside the playable facility.
@@ -819,15 +819,28 @@ local function buildMainSewer()
 end
 
 local function buildWestRoute()
-    local branch = buildTunnelZ("West_Collector_Tunnel", -55, -17, -141, 30, world, {-42, -91, -126})
-    -- Water flows directly from the main concourse into the collector tunnel.
+    local branch = buildTunnelZ("West_Collector_Tunnel", -55, -17, -137, 30, world, {-42, -91, -122})
+
+    -- Short lined water connector bridges the 12-stud offset between the
+    -- branch channel mouth and the main concourse river.
+    part("West_T_Junction_Riverbed", Vector3.new(10, 1, 13), Vector3.new(-55, -12.5, -11), Enum.Material.Slate, C.concreteDark, world)
+    addWater("West_T_Junction_Water", "Z", -55, -9, 18, 10, world)
+    addRiverWallsZ("West_T_Junction", -17, -5, -55, 10, world, {})
+
     local hall = buildPumpHall()
     addIndustrialSign("West_Collector_ID", "COLLECTOR  /  PUMP ACCESS", Vector3.new(-70.0, -2.2, -18), Vector3.new(0.22, 3, 10), Enum.NormalId.Right, branch)
     return branch, hall
 end
 
 local function buildEastRoute()
-    local branch = buildTunnelZ("East_Service_Tunnel", 65, 17, 150, 30, world, {45, 92, 133})
+    local branch = buildTunnelZ("East_Service_Tunnel", 65, 17, 137, 30, world, {45, 92, 121})
+
+    -- Water and the lowered bed continue through the short T-junction into
+    -- the cross-gallery; the tunnel side walls stop at the actual doorway.
+    part("East_T_Junction_Riverbed", Vector3.new(10, 1, 18), Vector3.new(65, -12.5, 142), Enum.Material.Slate, C.concreteDark, world)
+    addWater("East_T_Junction_Water", "Z", 65, 142, 20, 10, world)
+    addRiverWallsZ("East_T_Junction", 137, 150, 65, 10, world, {})
+
     -- A large cross-gallery receives the east branch through an opening in its south wall.
     local cross = buildTunnelX("East_Transfer_Gallery", 50, 190, 150, 34, world, {{65, 30}}, {}, {82, 142})
     addEndWallX("East_Transfer_West_End", 50, 150, 17, cross)
