@@ -483,17 +483,17 @@ local function buildBranchAndPumpRoom()
     part("Pump_Entry_Header", Vector3.new(18, 2, 1), Vector3.new(35, 2.5, 110), Enum.Material.Concrete, concreteDark, room)
 
     addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 7.2, room, 1)
-    part("Pump_Base", Vector3.new(13, 1.2, 10), Vector3.new(35, -9.35, 142), Enum.Material.Metal, rust, room)
-    local filterTank = cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(35, -4.1, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(68, 75, 68), room, Vector3.new(0, 0, 90))
+    part("Pump_Base", Vector3.new(13, 1.2, 10), Vector3.new(17.5, -9.35, 142), Enum.Material.Metal, rust, room)
+    local filterTank = cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(17.5, -4.1, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(68, 75, 68), room, Vector3.new(0, 0, 90))
     filterTank.Reflectance = 0.12
-    part("Pump_Tank_Cap", Vector3.new(7.8, 0.45, 7.8), Vector3.new(35, 0.95, 142), Enum.Material.CorrodedMetal, rust, room)
+    part("Pump_Tank_Cap", Vector3.new(7.8, 0.45, 7.8), Vector3.new(17.5, 0.95, 142), Enum.Material.CorrodedMetal, rust, room)
 
     -- Tank collars, inspection plate and rivets.
     for _, y in ipairs({-7.2, -1.2}) do
-        local collar = cylinder("Pump_Tank_Collar", 0.28, 7.9, Vector3.new(35, y, 142), Enum.Material.Metal, Color3.fromRGB(75, 81, 73), room, Vector3.new(0, 0, 90))
+        local collar = cylinder("Pump_Tank_Collar", 0.28, 7.9, Vector3.new(17.5, y, 142), Enum.Material.Metal, Color3.fromRGB(75, 81, 73), room, Vector3.new(0, 0, 90))
         collar.Reflectance = 0.12
     end
-    part("Pump_Tank_Inspection_Plate", Vector3.new(0.3, 2.5, 2.2), Vector3.new(39.0, -4.1, 142), Enum.Material.DiamondPlate, metal, room)
+    part("Pump_Tank_Inspection_Plate", Vector3.new(0.3, 2.5, 2.2), Vector3.new(21.5, -4.1, 142), Enum.Material.DiamondPlate, metal, room)
 
     -- Pump motor and coupling sit on a bolted steel plinth beside the filter tank.
     part("Pump_Motor_Platform", Vector3.new(8.5, 0.75, 5.5), Vector3.new(47.2, -9.35, 142), Enum.Material.Metal, rust, room)
@@ -505,8 +505,8 @@ local function buildBranchAndPumpRoom()
         motorBolt.Shape = Enum.PartType.Ball
     end
 
-    cylinder("Pump_Outlet_Pipe", 13, 0.8, Vector3.new(44, -2.5, 142), Enum.Material.CorrodedMetal, rust, room)
-    cylinder("Pump_Inlet_Pipe", 15, 0.72, Vector3.new(35, -2.5, 150), Enum.Material.Metal, metal, room, Vector3.new(0, 90, 0))
+    cylinder("Pump_Outlet_Pipe", 14, 0.8, Vector3.new(52, -2.5, 142), Enum.Material.CorrodedMetal, rust, room)
+    cylinder("Pump_Inlet_Pipe", 30, 0.72, Vector3.new(33, -2.5, 142), Enum.Material.Metal, metal, room)
 
     -- Valve wheel and control panel are mounted close to the rear-right wall.
     cylinder("Valve_Hub", 1.2, 2.6, Vector3.new(57.9, -4.1, 147), Enum.Material.Metal, rust, room, Vector3.new(0, 90, 0))
