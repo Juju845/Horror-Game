@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V7
+    HORROR GAME - SEWER LEVEL V8
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -177,22 +177,22 @@ end
 
 local function configureLighting()
     Lighting.ClockTime = 0.35
-    Lighting.Brightness = 2.35
+    Lighting.Brightness = 2.45
     Lighting.GlobalShadows = true
-    Lighting.Ambient = Color3.fromRGB(112, 115, 106)
-    Lighting.OutdoorAmbient = Color3.fromRGB(84, 89, 82)
-    Lighting.FogColor = Color3.fromRGB(76, 81, 73)
-    Lighting.FogStart = 155
-    Lighting.FogEnd = 560
-    Lighting.EnvironmentDiffuseScale = 0.52
-    Lighting.EnvironmentSpecularScale = 0.38
+    Lighting.Ambient = Color3.fromRGB(119, 122, 113)
+    Lighting.OutdoorAmbient = Color3.fromRGB(91, 96, 88)
+    Lighting.FogColor = Color3.fromRGB(79, 84, 77)
+    Lighting.FogStart = 175
+    Lighting.FogEnd = 620
+    Lighting.EnvironmentDiffuseScale = 0.56
+    Lighting.EnvironmentSpecularScale = 0.32
 
     local terrain = Workspace.Terrain
-    terrain.WaterColor = Color3.fromRGB(65, 61, 45)
-    terrain.WaterReflectance = 0.32
-    terrain.WaterTransparency = 0.2
-    terrain.WaterWaveSize = 0.16
-    terrain.WaterWaveSpeed = 13
+    terrain.WaterColor = Color3.fromRGB(58, 62, 50)
+    terrain.WaterReflectance = 0.24
+    terrain.WaterTransparency = 0.14
+    terrain.WaterWaveSize = 0.24
+    terrain.WaterWaveSpeed = 10
 
     for _, name in ipairs({"SewerAtmosphere", "SewerColor", "SewerBloom"}) do
         local old = Lighting:FindFirstChild(name)
@@ -201,12 +201,12 @@ local function configureLighting()
 
     local atmosphere = Instance.new("Atmosphere")
     atmosphere.Name = "SewerAtmosphere"
-    atmosphere.Density = 0.075
-    atmosphere.Offset = 0.02
-    atmosphere.Color = Color3.fromRGB(166, 170, 158)
-    atmosphere.Decay = Color3.fromRGB(73, 78, 68)
-    atmosphere.Glare = 0.01
-    atmosphere.Haze = 0.22
+    atmosphere.Density = 0.06
+    atmosphere.Offset = 0.015
+    atmosphere.Color = Color3.fromRGB(172, 174, 163)
+    atmosphere.Decay = Color3.fromRGB(79, 83, 74)
+    atmosphere.Glare = 0
+    atmosphere.Haze = 0.16
     atmosphere.Parent = Lighting
 
     local color = Instance.new("ColorCorrectionEffect")
@@ -285,17 +285,17 @@ local function addCeilingLamp(position, parent, name, color, brightness, range)
     surface.Name = name .. "_Downward_Light"
     surface.Face = Enum.NormalId.Bottom
     surface.Color = color
-    surface.Brightness = brightness or 1.7
-    surface.Range = range or 30
-    surface.Angle = 115
+    surface.Brightness = (brightness or 1.7) * 0.82
+    surface.Range = (range or 30) * 0.9
+    surface.Angle = 105
     surface.Shadows = true
     surface.Parent = lens
 
     local fill = Instance.new("PointLight")
     fill.Name = name .. "_Soft_Fill"
     fill.Color = color
-    fill.Brightness = 0.22
-    fill.Range = 12
+    fill.Brightness = 0.3
+    fill.Range = 14
     fill.Shadows = false
     fill.Parent = lens
     return fixture
@@ -368,10 +368,10 @@ local function buildMainTunnel()
     buildChannelFloor("Main", "X", Vector3.new(40, -10.5, 0), 320, 18, 8, tunnel)
 
     -- Two gaps in the long side walls create real junctions for the branch tunnels.
-    part("Main_Left_Side_Wall_A", Vector3.new(62, 7, 1), Vector3.new(-89, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Left_Side_Wall_B", Vector3.new(242, 7, 1), Vector3.new(79, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Right_Wall_A", Vector3.new(146, 7, 1), Vector3.new(-47, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Right_Wall_B", Vector3.new(156, 7, 1), Vector3.new(122, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Left_Side_Wall_A", Vector3.new(60, 7, 1), Vector3.new(-90, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Left_Side_Wall_B", Vector3.new(240, 7, 1), Vector3.new(80, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Right_Wall_A", Vector3.new(145, 7, 1), Vector3.new(-47.5, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Right_Wall_B", Vector3.new(155, 7, 1), Vector3.new(122.5, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
 
     -- Extended arched roof and repeating steel support frames.
     buildArch("X", 40, 0, -3, 7.5, 320, tunnel, "Main", Enum.Material.Concrete, concreteDark, 1.55)
@@ -396,9 +396,9 @@ local function buildMainTunnel()
         local pipeZ = side * 6.75
         local pipeRanges
         if side == -1 then
-            pipeRanges = {{-89, 62}, {79, 242}}
+            pipeRanges = {{-90, 60}, {80, 240}}
         else
-            pipeRanges = {{-47, 146}, {122, 156}}
+            pipeRanges = {{-47.5, 145}, {122.5, 155}}
         end
 
         for _, segment in ipairs(pipeRanges) do
@@ -410,8 +410,8 @@ local function buildMainTunnel()
         end
 
         for x = -104, 184, 16 do
-            local inLeftPortal = side == -1 and x >= -58 and x <= -42
-            local inRightPortal = side == 1 and x >= 26 and x <= 44
+            local inLeftPortal = side == -1 and x >= -60 and x <= -40
+            local inRightPortal = side == 1 and x >= 25 and x <= 45
             if not inLeftPortal and not inRightPortal then
                 part("Main_Pipe_Anchor", Vector3.new(0.85, 1.45, 1.25), Vector3.new(x, -5.2, side * 7.25), Enum.Material.Metal, metal, tunnel)
             end
@@ -684,7 +684,8 @@ local function buildWestServiceRoute()
 
     -- The bend is a full-width elbow: this tunnel heads west after the northbound run.
     buildChannelFloor("West_Turn", "X", Vector3.new(-100, -10.5, -108), 120, 18, 8, route)
-    part("West_Turn_North_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -99), Enum.Material.Concrete, concrete, route)
+    -- Keep the north wall open across x=-60..-40 for the incoming west leg.
+    part("West_Turn_North_Wall_Left", Vector3.new(100, 7, 1), Vector3.new(-110, -6.5, -99), Enum.Material.Concrete, concrete, route)
     part("West_Turn_South_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -117), Enum.Material.Concrete, concrete, route)
     -- The outer east edge of the elbow joins the short side wall of the approach.
     part("West_Turn_East_Side_Wall", Vector3.new(1, 7, 19), Vector3.new(-40, -6.5, -107.5), Enum.Material.Concrete, concrete, route)
@@ -742,7 +743,7 @@ local function buildEastDrainExtension()
     buildChannelFloor("East_Turn", "X", Vector3.new(85.5, -10.5, 262), 119, 18, 8, route)
     -- Leave the south-side wall open across x=26..44: this is the actual doorway
     -- from the long east leg, not a wall directly in front of the player.
-    part("East_Turn_North_Wall", Vector3.new(101, 7, 1), Vector3.new(94.5, -6.5, 253), Enum.Material.Concrete, concrete, route)
+    part("East_Turn_North_Wall", Vector3.new(100, 7, 1), Vector3.new(95, -6.5, 253), Enum.Material.Concrete, concrete, route)
     part("East_Turn_South_Wall", Vector3.new(119, 7, 1), Vector3.new(85.5, -6.5, 271), Enum.Material.Concrete, concrete, route)
     -- Continue the outside wall around the corner so the player cannot step off into open space.
     part("East_Turn_West_Side_Wall", Vector3.new(1, 7, 18), Vector3.new(26, -6.5, 262), Enum.Material.Concrete, concrete, route)
@@ -902,4 +903,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V7 loaded: recessed Terrain-water channels, clear junctions, sealed ends, detailed pump room and no flashlight.")
+print("[Horror Game] Sewer V8 loaded: recessed Terrain-water channels, clear 90-degree entrances, longer sealed routes and tuned industrial lighting. No flashlight.")
