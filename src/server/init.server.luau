@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V9
+    HORROR GAME - SEWER LEVEL V10
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -212,11 +212,11 @@ local function configureLighting()
 
     local waterSettingsOk, waterSettingsError = pcall(function()
         local terrain = Workspace.Terrain
-        terrain.WaterColor = Color3.fromRGB(58, 62, 50)
-        terrain.WaterReflectance = 0.24
-        terrain.WaterTransparency = 0.14
-        terrain.WaterWaveSize = 0.24
-        terrain.WaterWaveSpeed = 10
+            terrain.WaterColor = Color3.fromRGB(48, 52, 42)
+        terrain.WaterReflectance = 0.38
+        terrain.WaterTransparency = 0.11
+        terrain.WaterWaveSize = 0.3
+        terrain.WaterWaveSpeed = 8
     end)
     if not waterSettingsOk then
         warn("[Horror Game] Terrain water settings restricted; fallback water surfaces will be used: " .. tostring(waterSettingsError))
@@ -587,7 +587,7 @@ local function buildBranchAndPumpRoom()
     for z = 16, 104, 16 do table.insert(branchRibs, z) end
     buildArchRibs("Z", 35, 60, -3, 7.02, branchRibs, branch, "Branch")
 
-    addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 104, 8, branch, 1)
+    addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 104, 8, branch, nil)
 
     for _, x in ipairs({27.2, 42.8}) do
         local branchPipe = cylinder("Branch_Rusted_Pipe", 96, 0.6, Vector3.new(x, -5.2, 60), Enum.Material.CorrodedMetal, Color3.fromRGB(83, 57, 43), branch, Vector3.new(0, 90, 0))
@@ -617,7 +617,7 @@ local function buildBranchAndPumpRoom()
     part("Pump_Entry_Right_Wall", Vector3.new(16, 14, 1), Vector3.new(52, -3.5, 110), Enum.Material.Concrete, concrete, room)
     part("Pump_Entry_Header", Vector3.new(18, 2, 1), Vector3.new(35, 2.5, 110), Enum.Material.Concrete, concreteDark, room)
 
-    addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 8, room, 1)
+    addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 8, room, nil)
     part("Pump_Base", Vector3.new(13, 1.2, 10), Vector3.new(17.5, -9.35, 142), Enum.Material.Metal, rust, room)
     local filterTank = cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(17.5, -4.1, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(68, 75, 68), room, Vector3.new(0, 0, 90))
     filterTank.Reflectance = 0.12
@@ -739,7 +739,7 @@ local function buildWestServiceRoute()
     part("West_Chamber_Entry_Wall_South", Vector3.new(1, 14, 14), Vector3.new(-160, -3.5, -92), Enum.Material.Concrete, concrete, chamber)
     part("West_Chamber_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(-160, 2.5, -108), Enum.Material.Concrete, concreteDark, chamber)
 
-    addFlowingWater("West_Chamber_Runoff", "X", Vector3.new(-185, -9.94, -108), 50, 8, chamber, 1)
+    addFlowingWater("West_Chamber_Runoff", "X", Vector3.new(-185, -9.94, -108), 50, 8, chamber, nil)
     local wheelHub = cylinder("West_Main_Valve_Hub", 1.1, 3.1, Vector3.new(-204, -3.7, -108), Enum.Material.Metal, rust, chamber, Vector3.new(0, 90, 0))
     part("West_Valve_Wheel_Vertical", Vector3.new(0.35, 5, 0.35), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
     part("West_Valve_Wheel_Horizontal", Vector3.new(0.35, 0.35, 5), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
@@ -772,7 +772,8 @@ local function buildEastDrainExtension()
     -- Leave the south-side wall open across x=26..44: this is the actual doorway
     -- from the long east leg, not a wall directly in front of the player.
     part("East_Turn_North_Wall", Vector3.new(100, 7, 1), Vector3.new(95, -6.5, 253), Enum.Material.Concrete, concrete, route)
-    part("East_Turn_South_Wall", Vector3.new(119, 7, 1), Vector3.new(85.5, -6.5, 271), Enum.Material.Concrete, concrete, route)
+    -- Keep the south entry open across x=26..44 so the incoming drain can turn east.
+    part("East_Turn_South_Wall_Right", Vector3.new(101, 7, 1), Vector3.new(94.5, -6.5, 271), Enum.Material.Concrete, concrete, route)
     -- Continue the outside wall around the corner so the player cannot step off into open space.
     part("East_Turn_West_Side_Wall", Vector3.new(1, 7, 18), Vector3.new(26, -6.5, 262), Enum.Material.Concrete, concrete, route)
     buildArch("X", 85.5, 262, -3, 7.5, 119, route, "East_Turn", Enum.Material.Concrete, concreteDark, 1.55)
@@ -797,7 +798,7 @@ local function buildEastDrainExtension()
     part("Sluice_Entry_South", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 277.5), Enum.Material.Concrete, concrete, chamber)
     part("Sluice_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(135, 2.5, 262), Enum.Material.Concrete, concreteDark, chamber)
 
-    addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 50, 8, chamber, 1)
+    addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 50, 8, chamber, nil)
     local tank = cylinder("Sluice_Filter_Tank", 11, 8, Vector3.new(174, -4.1, 270), Enum.Material.Metal, Color3.fromRGB(67, 76, 69), chamber, Vector3.new(0, 0, 90))
     tank.Material = Enum.Material.CorrodedMetal
     part("Sluice_Tank_Cap", Vector3.new(8.5, 0.45, 8.5), Vector3.new(174, 1.05, 270), Enum.Material.Metal, rust, chamber)
@@ -850,44 +851,51 @@ buildEastDrainExtension()
 buildSecurityGate()
 buildEntrance()
 
--- This level is not a platform-jumping game. Disable jumping so players cannot
--- leap over channel walls and leave the walkable sewer route.
-for _, player in ipairs(Players:GetPlayers()) do
-    local character = player.Character
-    local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+-- A solid but invisible spawn pad sits flush with the dry right-hand walkway.
+-- The earlier script removed the template spawn and failed before creating this one.
+local spawn = Instance.new("SpawnLocation")
+spawn.Name = "SewerSpawn"
+spawn.Size = Vector3.new(8, 1, 4)
+spawn.Position = Vector3.new(-108, 0, 6.5)
+spawn.CFrame = CFrame.new(-108, 0, 6.5) * CFrame.Angles(0, math.rad(-90), 0)
+spawn.Anchored = true
+spawn.Neutral = true
+spawn.Duration = 0
+spawn.Transparency = 1
+spawn.CanCollide = true
+spawn.CanTouch = true
+spawn.CanQuery = true
+spawn.Parent = world
+
+local function configureSewerPlayer(player, character)
+    local humanoid = character:WaitForChild("Humanoid", 10)
     if humanoid then
         humanoid.UseJumpPower = true
         humanoid.JumpPower = 0
         humanoid.JumpHeight = 0
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     end
+
+    -- Move an already-spawned character as well as future characters onto
+    -- the confirmed dry walkway. The root stands about 3.2 studs above the pad.
+    character:PivotTo(spawn.CFrame * CFrame.new(0, 3.2, 0))
 end
 
-local spawn = Instance.new("SpawnLocation")
-spawn.Name = "SewerSpawn"
-spawn.Size = Vector3.new(1, 0.2, 1)
-spawn.Position = Vector3.new(-108, -9.58 + WORLD_Y_OFFSET, 6.5)
-spawn.CFrame = CFrame.new(-108, -9.58 + WORLD_Y_OFFSET, 6.5) * CFrame.Angles(0, math.rad(-90), 0)
-spawn.Anchored = true
-spawn.Neutral = true
-spawn.Duration = 0
-spawn.Transparency = 1
-spawn.CanCollide = false
-spawn.CanTouch = false
-spawn.CanQuery = false
-spawn.Parent = world
-
-Players.PlayerAdded:Connect(function(player)
+local function bindSewerPlayer(player)
     player.CharacterAdded:Connect(function(character)
-        local humanoid = character:WaitForChild("Humanoid", 10)
-        if humanoid then
-            humanoid.UseJumpPower = true
-            humanoid.JumpPower = 0
-            humanoid.JumpHeight = 0
-            humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
-        end
+        task.wait(0.15)
+        configureSewerPlayer(player, character)
     end)
-end)
+
+    if player.Character then
+        task.spawn(configureSewerPlayer, player, player.Character)
+    end
+end
+
+for _, player in ipairs(Players:GetPlayers()) do
+    bindSewerPlayer(player)
+end
+Players.PlayerAdded:Connect(bindSewerPlayer)
 
 -- SpawnLocation adds a default star decal. Delete all appearance children so it stays invisible.
 for _, child in ipairs(spawn:GetDescendants()) do
@@ -931,4 +939,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V9 loaded: recessed native-water channels with a sandbox-safe fallback, clear 90-degree entrances, sealed routes and tuned industrial lighting. No flashlight.")
+print("[Horror Game] Sewer V10 loaded: spawn fixed on dry walkway, all water channels generated, open 90-degree turns and improved dirty-water surface. No flashlight.")
