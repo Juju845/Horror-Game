@@ -227,6 +227,43 @@ local function buildMainTunnel()
         end
     end
 
+    -- Recessed service cabinets and wall seams are mounted flush to the concrete.
+    for x = -88, 88, 44 do
+        for _, side in ipairs({-1, 1}) do
+            local panelZ = side * 7.42
+            local cabinet = part(
+                "Wall_Service_Cabinet",
+                Vector3.new(3.2, 2.25, 0.22),
+                Vector3.new(x, -6.0, panelZ),
+                Enum.Material.DiamondPlate,
+                Color3.fromRGB(56, 64, 60),
+                tunnel
+            )
+            local stripe = part(
+                "Cabinet_Warning_Stripe",
+                Vector3.new(0.24, 1.45, 0.06),
+                Vector3.new(x + 1.12, -6.0, side * 7.28),
+                Enum.Material.Metal,
+                yellow,
+                tunnel
+            )
+            stripe.CanCollide = false
+
+            for boltX = -1, 1, 2 do
+                local bolt = part(
+                    "Cabinet_Fixing_Bolt",
+                    Vector3.new(0.12, 0.12, 0.08),
+                    Vector3.new(x + boltX * 1.32, -5.1, side * 7.28),
+                    Enum.Material.Metal,
+                    concreteEdge,
+                    tunnel
+                )
+                bolt.Shape = Enum.PartType.Ball
+                bolt.CanCollide = false
+            end
+        end
+    end
+
     -- The entrance portal is a thicker metal arch at the start of the tunnel.
     buildArch("X", -117.5, 0, -3, 7.65, 1.6, tunnel, "Entrance_Portal", Enum.Material.Metal, rust, 0.85)
     part("Entrance_Left_Pillar", Vector3.new(1.5, 7, 1.5), Vector3.new(-117.5, -6.5, -7.8), Enum.Material.Metal, rust, tunnel)
