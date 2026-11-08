@@ -202,7 +202,9 @@ local function setupCharacter(character)
     if currentHumanoid then
         currentHumanoid.WalkSpeed = WALK_SPEED
         currentHumanoid.UseJumpPower = true
-        currentHumanoid.JumpPower = 36
+        currentHumanoid.JumpPower = 0
+        currentHumanoid.JumpHeight = 0
+        currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
         currentHumanoid.AutoRotate = true
     end
 
@@ -237,15 +239,15 @@ local function setupCharacter(character)
         concreteStep = makeStepSound(
             rootPart,
             "SewerConcreteFootsteps",
-            "rbxassetid://5659823493",
-            0.27,
+            "rbxassetid://6362185620",
+            0.24,
             0.96
         )
         wetStep = makeStepSound(
             rootPart,
             "SewerWetFootsteps",
-            "rbxassetid://9117941991",
-            0.25,
+            "rbxassetid://9120589946",
+            0.23,
             0.92
         )
     end
@@ -295,8 +297,8 @@ local function playFootstep(sprinting)
     local sound = onWater and wetStep or concreteStep
     if not sound then return end
 
-    sound.PlaybackSpeed = sprinting and 1.12 or 0.96
-    sound.Volume = onWater and 0.39 or 0.31
+    sound.PlaybackSpeed = sprinting and 1.08 or 0.94
+    sound.Volume = onWater and 0.28 or 0.25
     sound:Stop()
     sound.TimePosition = 0
     sound:Play()
