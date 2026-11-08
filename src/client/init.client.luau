@@ -192,6 +192,16 @@ local function bindTool(tool)
     tool.Activated:Connect(toggleBeam)
 
     updateLightState()
+
+    -- If the inventory item arrives after the character has spawned, equip it
+    -- once automatically. It can then be stowed normally with G or hotbar 1.
+    task.defer(function()
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        if humanoid and tool.Parent == backpack and not equipped then
+            humanoid:EquipTool(tool)
+        end
+    end)
 end
 
 local function findTool()
