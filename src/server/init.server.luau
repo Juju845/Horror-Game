@@ -1283,6 +1283,32 @@ local function buildVisualOverhaul()
 
         cylinder("East_Leg_Overhead_Service_Pipe_A", 94, 0.42, Vector3.new(35, 3.4, 210), Enum.Material.Metal, Color3.fromRGB(83, 97, 94), east, Vector3.new(0, 90, 0))
         cylinder("East_Leg_Overhead_Service_Pipe_B", 94, 0.42, Vector3.new(38, 3.4, 210), Enum.Material.Metal, Color3.fromRGB(83, 97, 94), east, Vector3.new(0, 90, 0))
+
+        local sluice = east:FindFirstChild("East_Sluice_Chamber")
+        if sluice then
+            addIndustrialWallPanels("Sluice_Side", "Z", 244, 280, 16, {135.55, 184.45}, sluice, {{253, 271}})
+            addIndustrialWallPanels("Sluice_End", "X", 140, 180, 16, {240.55, 283.45}, sluice)
+            addWalkwaySafetyLines("Sluice", "X", Vector3.new(160, -10.5, 262), 44, sluice)
+            addIndustrialSign("Sluice_Zone_ID", "SLUICE CONTROL  /  04", Vector3.new(184.45, -3.1, 262), Vector3.new(0.18, 2.8, 10), Enum.NormalId.Left, sluice)
+        end
+    end
+
+    local pumpAccess = world:FindFirstChild("Pump_Room_Access")
+    local pumpRoom = pumpAccess and pumpAccess:FindFirstChild("Old_Pump_Room")
+    if pumpRoom then
+        addIndustrialWallPanels("Pump_Room_Side", "Z", 116, 152, 16, {10.55, 59.45}, pumpRoom)
+        addIndustrialWallPanels("Pump_Room_End", "X", 12, 58, 16, {110.55, 157.45}, pumpRoom, {{27, 43}})
+        addWallMountedServiceLights("Pump_Room", "Z", {120, 148}, {10.3, 59.7}, pumpRoom)
+        addWalkwaySafetyLines("Pump_Room", "Z", Vector3.new(35, -10.5, 134), 45, pumpRoom)
+    end
+
+    local west = world:FindFirstChild("West_Service_Route")
+    local westChamber = west and west:FindFirstChild("West_Valve_Chamber")
+    if westChamber then
+        addIndustrialWallPanels("West_Chamber_Side", "Z", -126, -90, 16, {-209.45}, westChamber)
+        addIndustrialWallPanels("West_Chamber_End", "X", -205, -165, 16, {-130.45, -85.45}, westChamber)
+        addWalkwaySafetyLines("West_Chamber", "X", Vector3.new(-185, -10.5, -108), 45, westChamber)
+        addIndustrialSign("West_Valve_ID", "WEST PRESSURE  /  01", Vector3.new(-209.45, -3.1, -108), Vector3.new(0.18, 2.8, 10), Enum.NormalId.Right, westChamber)
     end
 
     addPumpRoomVisuals()
