@@ -118,7 +118,7 @@ local function buildMainTunnel()
 
     -- Split the right wall to leave a real opening into the side tunnel.
     part("Main_Wall_Right_A", Vector3.new(126, 12, 1), Vector3.new(-37, -4.5, 9), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Wall_Right_B", Vector3.new(156, 12, 1), Vector3.new(122, -4.5, 9), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Wall_Right_B", Vector3.new(56, 12, 1), Vector3.new(72, -4.5, 9), Enum.Material.Concrete, concrete, tunnel)
 
     -- Shallow runoff channel and raised channel edges.
     part("Runoff_Water_Main", Vector3.new(196, 0.08, 4), Vector3.new(0, -9.92, 0), Enum.Material.Glass, Color3.fromRGB(55, 91, 86), tunnel, 0.34).CanCollide = false
@@ -129,27 +129,26 @@ local function buildMainTunnel()
     for _, z in ipairs({-7.15, 7.15}) do
         cylinder("Wall_Pipe_Main", 190, 1.0, Vector3.new(0, -3.0, z), Enum.Material.Metal, rust, tunnel)
         for x = -82, 82, 24 do
-            part("Pipe_Wall_Bracket", Vector3.new(0.65, 1.8, 0.8), Vector3.new(x, -3.0, z + (z < 0 and 0.35 or -0.35)), Enum.Material.Metal, metal, tunnel)
+            part("Pipe_Wall_Bracket", Vector3.new(0.65, 1.8, 0.8), Vector3.new(x, -3.0, z + (z < 0 and -0.95 or 0.95)), Enum.Material.Metal, metal, tunnel)
         end
     end
 
     -- Ceiling conduit and cable trays.
     cylinder("Ceiling_Service_Pipe", 185, 0.55, Vector3.new(0, 0.15, -4.5), Enum.Material.Metal, metal, tunnel)
     for x = -82, 82, 26 do
-        part("Ceiling_Pipe_Hanger", Vector3.new(0.35, 1.2, 0.45), Vector3.new(x, 0.65, -4.5), Enum.Material.Metal, rust, tunnel)
+        part("Ceiling_Pipe_Hanger", Vector3.new(0.35, 0.8, 0.45), Vector3.new(x, 0.7, -4.5), Enum.Material.Metal, rust, tunnel)
     end
 
     for x = -72, 88, 40 do
-        local fixture = part("Ceiling_Lamp", Vector3.new(3.8, 0.3, 1.5), Vector3.new(x, 0.75, 0), Enum.Material.Metal, Color3.fromRGB(41, 48, 45), tunnel)
-        local lens = part("Lamp_Lens", Vector3.new(2.8, 0.12, 0.85), Vector3.new(x, 0.53, 0), Enum.Material.Neon, Color3.fromRGB(170, 194, 172), tunnel)
-        lens.CanCollide = false
+        local fixture = part("Ceiling_Lamp", Vector3.new(3.8, 0.3, 1.5), Vector3.new(x, 0.82, 0), Enum.Material.Neon, Color3.fromRGB(151, 174, 154), tunnel)
+        fixture.CanCollide = false
         local light = Instance.new("PointLight")
         light.Name = "Sewer_Ceiling_Light"
-        light.Color = Color3.fromRGB(178, 197, 179)
-        light.Brightness = 1.35
-        light.Range = 29
+        light.Color = Color3.fromRGB(188, 205, 187)
+        light.Brightness = 1.45
+        light.Range = 31
         light.Shadows = true
-        light.Parent = lens
+        light.Parent = fixture
     end
 
     -- A small amount of grounded wear breaks up the clean concrete floor.
@@ -204,14 +203,14 @@ local function buildSideTunnelAndPumpRoom()
     end
 
     for z = 18, 78, 30 do
-        local lens = part("Branch_Ceiling_Lens", Vector3.new(2.2, 0.12, 1.1), Vector3.new(35, 0.53, z), Enum.Material.Neon, Color3.fromRGB(174, 192, 171), branch)
-        lens.CanCollide = false
+        local fixture = part("Branch_Ceiling_Lamp", Vector3.new(2.2, 0.3, 1.1), Vector3.new(35, 0.82, z), Enum.Material.Neon, Color3.fromRGB(147, 166, 149), branch)
+        fixture.CanCollide = false
         local light = Instance.new("PointLight")
-        light.Color = Color3.fromRGB(177, 195, 176)
-        light.Brightness = 1.15
-        light.Range = 25
+        light.Color = Color3.fromRGB(183, 201, 181)
+        light.Brightness = 1.25
+        light.Range = 27
         light.Shadows = true
-        light.Parent = lens
+        light.Parent = fixture
     end
 
     -- Pump room: proper floor, ceiling and connected walls.
@@ -243,7 +242,7 @@ local function buildSideTunnelAndPumpRoom()
     part("Valve_Wheel_Top", Vector3.new(0.35, 4.8, 0.35), Vector3.new(56.1, -4.0, 115), Enum.Material.Metal, warningYellow, room)
     part("Valve_Wheel_Side", Vector3.new(0.35, 0.35, 4.8), Vector3.new(56.1, -4.0, 115), Enum.Material.Metal, warningYellow, room)
 
-    local roomLamp = part("Pump_Room_Emergency_Lamp", Vector3.new(3.5, 0.3, 1.3), Vector3.new(35, 0.7, 104), Enum.Material.Neon, Color3.fromRGB(180, 54, 42), room)
+    local roomLamp = part("Pump_Room_Emergency_Lamp", Vector3.new(3.5, 0.3, 1.3), Vector3.new(35, 0.82, 104), Enum.Material.Neon, Color3.fromRGB(180, 54, 42), room)
     roomLamp.CanCollide = false
     local redLight = Instance.new("PointLight")
     redLight.Color = Color3.fromRGB(255, 72, 55)
@@ -296,11 +295,7 @@ local function buildEntryDetails()
     part("Entry_Rail_Left", Vector3.new(18, 1.2, 0.18), Vector3.new(-82, -8.95, -11.1), Enum.Material.Metal, rust, entrance)
     part("Entry_Rail_End", Vector3.new(0.18, 1.2, 11), Vector3.new(-91, -8.95, -5.4), Enum.Material.Metal, rust, entrance)
 
-    -- Wall-mounted warning stripes and a small maintenance notice.
-    for i = 1, 5 do
-        local stripe = part("Hazard_Stripe", Vector3.new(0.35, 0.2, 1.2), Vector3.new(-91 + i * 0.8, -9.2, -8.35), Enum.Material.Metal, warningYellow, entrance)
-        stripe.CanCollide = false
-    end
+    -- Maintenance platform details are attached directly to the platform and rails.
 end
 
 configureLighting()
