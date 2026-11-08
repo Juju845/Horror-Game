@@ -19,8 +19,9 @@ local SPRINT_SPEED = 19
 local MAX_STAMINA = 100
 local STAMINA_DRAIN_PER_SECOND = 23
 local STAMINA_REGEN_PER_SECOND = 19
-local REGEN_DELAY = 0.85
-local EXHAUSTED_RECOVERY = 28
+local REGEN_DELAY = 2.2
+local EXHAUSTED_RECOVERY = 40
+local MIN_EXHAUSTED_TIME = 7.0
 
 player.CameraMode = Enum.CameraMode.LockFirstPerson
 player.CameraMinZoomDistance = 0.5
@@ -132,8 +133,8 @@ fillCorner.Parent = staminaFill
 local staminaBreathing = Instance.new("Sound")
 staminaBreathing.Name = "ExhaustedBreathing"
 staminaBreathing.SoundId = "rbxassetid://3725917109"
-staminaBreathing.Volume = 0.4
-staminaBreathing.PlaybackSpeed = 0.94
+staminaBreathing.Volume = 0.48
+staminaBreathing.PlaybackSpeed = 0.88
 staminaBreathing.Looped = true
 local breathReverb = Instance.new("ReverbSoundEffect")
 breathReverb.DecayTime = 1.7
@@ -157,6 +158,7 @@ end
 local stamina = MAX_STAMINA
 local sprintHeld = false
 local exhausted = false
+local exhaustedAt = 0
 local lastStaminaUse = 0
 local stepTimer = 0
 
@@ -204,6 +206,27 @@ local function setupCharacter(character)
         currentHumanoid.AutoRotate = true
     end
 
+    -- The built-in Roblox character script creates its own "Running" sound.
+    -- Mute standard movement loops so the custom sewer footsteps play alone.
+    local function muteDefaultFootstep(instance)
+        if not instance:IsA("Sound") then return end
+        local name = string.lower(instance.Name)
+        if name == "running" or name == "walking" or name == "footsteps" or name == "walk" then
+            instance:Stop()
+            instance.Volume = 0
+            instance:GetPropertyChangedSignal("Volume"):Connect(function()
+                if instance.Parent and instance.Volume ~= 0 then
+                    instance.Volume = 0
+                end
+            end)
+        end
+    end
+
+    for _, descendant in ipairs(character:GetDescendants()) do
+        muteDefaultFootstep(descendant)
+    end
+    character.DescendantAdded:Connect(muteDefaultFootstep)
+
     if rootPart then
         local oldConcrete = rootPart:FindFirstChild("SewerConcreteFootsteps")
         local oldWet = rootPart:FindFirstChild("SewerWetFootsteps")
@@ -215,15 +238,15 @@ local function setupCharacter(character)
             rootPart,
             "SewerConcreteFootsteps",
             "rbxassetid://5659823493",
-            0.32,
+            0.27,
             0.96
         )
         wetStep = makeStepSound(
             rootPart,
             "SewerWetFootsteps",
-            "rbxassetid://121348242238661",
-            0.36,
-            0.94
+            "rbxassetid://9117941991",
+            0.25,
+            0.92
         )
     end
 end
@@ -261,10 +284,13 @@ local function playFootstep(sprinting)
     rayParams.FilterType = Enum.RaycastFilterType.Exclude
     rayParams.FilterDescendantsInstances = {currentCharacter}
 
+    rayParams.IgnoreWater = false
     local result = Workspace:Raycast(rootPart.Position, Vector3.new(0, -6, 0), rayParams)
-    local onWater = result ~= nil
-        and (result.Material == Enum.Material.Water
-            or string.find(result.Instance.Name, "Dirty_Water") ~= nil)
+    if not result then return end
+
+    local hitName = string.lower(result.Instance.Name)
+    local onWater = result.Material == Enum.Material.Water
+        or string.find(hitName, "dirty_water", 1, true) ~= nil
 
     local sound = onWater and wetStep or concreteStep
     if not sound then return end
@@ -304,12 +330,15 @@ RunService:BindToRenderStep("HorrorGamePlayerSystems", Enum.RenderPriority.Camer
         if stamina <= 0 then
             stamina = 0
             exhausted = true
+            exhaustedAt = now
             sprintHeld = false
             sprinting = false
         end
     elseif not sprintHeld and now - lastStaminaUse >= REGEN_DELAY then
         stamina = math.min(MAX_STAMINA, stamina + STAMINA_REGEN_PER_SECOND * deltaTime)
-        if exhausted and stamina >= EXHAUSTED_RECOVERY then
+        if exhausted
+            and stamina >= EXHAUSTED_RECOVERY
+            and now - exhaustedAt >= MIN_EXHAUSTED_TIME then
             exhausted = false
         end
     end
@@ -344,4 +373,4 @@ RunService:BindToRenderStep("HorrorGamePlayerSystems", Enum.RenderPriority.Camer
 end)
 
 updateStaminaBar()
-print("[Horror Game] Player systems ready: no flashlight, stamina sprint, breathing and sewer footsteps.")
+print("[Horror Game] Player systems ready: no flashlight, custom concrete/water steps, muted default running sound, delayed recovery and longer panting.")
