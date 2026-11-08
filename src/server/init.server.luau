@@ -175,7 +175,7 @@ local function buildMainTunnel()
     part("Main_Walking_Floor", Vector3.new(240, 1, 18), Vector3.new(0, -10.5, 0), Enum.Material.Concrete, concrete, tunnel)
     part("Main_Left_Side_Wall", Vector3.new(240, 7, 1), Vector3.new(0, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
     part("Main_Right_Wall_A", Vector3.new(146, 7, 1), Vector3.new(-47, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Right_Wall_B", Vector3.new(74, 7, 1), Vector3.new(83, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Right_Wall_B", Vector3.new(76, 7, 1), Vector3.new(82, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
 
     -- Continuous arched roof and repeating steel support frames.
     buildArch("X", 0, 0, -3, 7.5, 240, tunnel, "Main", Enum.Material.Concrete, concreteDark, 1.55)
