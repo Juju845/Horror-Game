@@ -536,9 +536,9 @@ local function addChannelBridge(name, axis, center, parent)
         for _, alongOffset in ipairs({-2.55, 2.55}) do
             local postPosition
             if axis == "X" then
-                postPosition = Vector3.new(center.X + alongOffset, -9.15, center.Z + side * 4.18)
+                postPosition = Vector3.new(center.X + alongOffset, -9.165, center.Z + side * 4.18)
             else
-                postPosition = Vector3.new(center.X + side * 4.18, -9.15, center.Z + alongOffset)
+                postPosition = Vector3.new(center.X + side * 4.18, -9.165, center.Z + alongOffset)
             end
             part(name .. "_Handrail_Post", Vector3.new(0.18, 1.55, 0.18), postPosition, Enum.Material.Metal, Color3.fromRGB(45, 55, 55), parent)
         end
@@ -1293,8 +1293,8 @@ local function buildVisualOverhaul()
         end
     end
 
-    local pumpAccess = world:FindFirstChild("Pump_Room_Access")
-    local pumpRoom = pumpAccess and pumpAccess:FindFirstChild("Old_Pump_Room")
+    -- Old_Pump_Room is a direct child of SewerWorld, separate from its access tunnel.
+    local pumpRoom = world:FindFirstChild("Old_Pump_Room")
     if pumpRoom then
         addIndustrialWallPanels("Pump_Room_Side", "Z", 116, 152, 16, {10.55, 59.45}, pumpRoom)
         addIndustrialWallPanels("Pump_Room_End", "X", 12, 58, 16, {110.55, 157.45}, pumpRoom, {{27, 43}})
