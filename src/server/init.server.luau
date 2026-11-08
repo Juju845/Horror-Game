@@ -93,46 +93,84 @@ end
 -- Muddy current with moving surface streaks and quiet positional water ambience.
 -- Uses Roblox Terrain Water instead of flat Parts. Terrain Water has built-in
 -- animated waves and reflections, giving the channels a continuous natural surface.
-local function addFlowingWater(name, axis, center, length, width, parent, flowDirection)
+local function addFlowingWater(name, axis, center, length, width, parent, bankOpenings, bankRange)
     local size = axis == "X"
         and Vector3.new(length, 4, width)
         or Vector3.new(width, 4, length)
 
     local terrain = Workspace.Terrain
-    -- Exact voxel-aligned surface: water ends at world Y=0, half a stud below
-    -- the walkways. Its two-stud depth sits inside the lowered concrete bed.
-    local waterTop = 0
-    local waterFrame = CFrame.new(center.X, waterTop - 2, center.Z)
+    -- Exact voxel-aligned surface: water ends at world Y=0, below the walkways.
+    local waterFrame = CFrame.new(center.X, -2, center.Z)
 
-    -- Clear only the channel volume, then fill it with real Terrain Water.
+    -- Clear only the channel volume, then fill it with native Terrain Water.
     terrain:FillBlock(waterFrame, size, Enum.Material.Air)
     terrain:FillBlock(waterFrame, size, Enum.Material.Water)
 
-    -- Raised concrete banks contain the water and make the channel read as a
-    -- recessed drain instead of a flat painted stripe on the walking floor.
+    -- At an elbow, shorten the concrete banks around the joining passage.
+    -- This keeps each stream open through the junction instead of making a curb wall.
+    if bankOpenings == false then
+        return
+    end
+
+    local axisCenter = axis == "X" and center.X or center.Z
+    local axisStart = axisCenter - length / 2
+    local axisEnd = axisCenter + length / 2
+    if bankRange then
+        axisStart = math.max(axisStart, bankRange[1])
+        axisEnd = math.min(axisEnd, bankRange[2])
+    end
+    if axisEnd <= axisStart then return end
+
+    local segments = {{axisStart, axisEnd}}
+    if bankOpenings then
+        for _, opening in ipairs(bankOpenings) do
+            local cutStart = opening[1] - opening[2] / 2
+            local cutEnd = opening[1] + opening[2] / 2
+            local nextSegments = {}
+            for _, segment in ipairs(segments) do
+                local segmentStart, segmentEnd = segment[1], segment[2]
+                if cutEnd <= segmentStart or cutStart >= segmentEnd then
+                    table.insert(nextSegments, segment)
+                else
+                    if cutStart > segmentStart then
+                        table.insert(nextSegments, {segmentStart, math.min(cutStart, segmentEnd)})
+                    end
+                    if cutEnd < segmentEnd then
+                        table.insert(nextSegments, {math.max(cutEnd, segmentStart), segmentEnd})
+                    end
+                end
+            end
+            segments = nextSegments
+        end
+    end
+
     local bankY = -10.25
     local bankColor = Color3.fromRGB(67, 72, 66)
-    if axis == "X" then
-        for _, side in ipairs({-1, 1}) do
-            part(
-                name .. "_Raised_Channel_Bank",
-                Vector3.new(length, 1.0, 0.55),
-                Vector3.new(center.X, bankY, center.Z + side * 4.0),
-                Enum.Material.Concrete,
-                bankColor,
-                parent
-            )
-        end
-    else
-        for _, side in ipairs({-1, 1}) do
-            part(
-                name .. "_Raised_Channel_Bank",
-                Vector3.new(0.55, 1.0, length),
-                Vector3.new(center.X + side * 4.0, bankY, center.Z),
-                Enum.Material.Concrete,
-                bankColor,
-                parent
-            )
+    for _, side in ipairs({-1, 1}) do
+        for _, segment in ipairs(segments) do
+            local segmentLength = segment[2] - segment[1]
+            if segmentLength > 1 then
+                local positionAlong = (segment[1] + segment[2]) / 2
+                if axis == "X" then
+                    part(
+                        name .. "_Raised_Channel_Bank",
+                        Vector3.new(segmentLength, 1.0, 0.55),
+                        Vector3.new(positionAlong, bankY, center.Z + side * 4.0),
+                        Enum.Material.Concrete,
+                        bankColor,
+                        parent
+                    )
+                else
+                    part(
+                        name .. "_Raised_Channel_Bank",
+                        Vector3.new(0.55, 1.0, segmentLength),
+                        Vector3.new(center.X + side * 4.0, bankY, positionAlong),
+                        Enum.Material.Concrete,
+                        bankColor,
+                        parent
+                    )
+                end
+            end
         end
     end
 end
@@ -349,9 +387,9 @@ local function buildMainTunnel()
     buildArchRibs("X", 0, 0, -3, 7.02, ribPositions, tunnel, "Main")
 
     -- The main stream branches into the side corridors at both junctions.
-    addFlowingWater("Main_Channel", "X", Vector3.new(40, -9.94, 0), 312, 8, tunnel, 1)
-    addFlowingWater("Main_Right_Junction", "Z", Vector3.new(35, -9.94, 4.5), 12, 8, tunnel, 1)
-    addFlowingWater("Main_Left_Junction", "Z", Vector3.new(-50, -9.94, -4.5), 12, 8, tunnel, 1)
+    addFlowingWater("Main_Channel", "X", Vector3.new(40, -9.94, 0), 312, 8, tunnel, {{-50, 18}, {35, 18}})
+    addFlowingWater("Main_Right_Junction", "Z", Vector3.new(35, -9.94, 4.5), 12, 8, tunnel, false)
+    addFlowingWater("Main_Left_Junction", "Z", Vector3.new(-50, -9.94, -4.5), 12, 8, tunnel, false)
 
     -- Wall pipes are split at both side-tunnel portals, so pipes never cross an entrance.
     for _, side in ipairs({-1, 1}) do
@@ -637,7 +675,7 @@ local function buildWestServiceRoute()
         if z > -100 then table.insert(ribs, z) end
     end
     buildArchRibs("Z", -50, -62, -3, 7.02, ribs, route, "West_Leg")
-    addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 8, route, 1)
+    addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 8, route, nil, {-98, -8})
     for z = -96, -24, 30 do
         addCeilingLamp(Vector3.new(-50, 3.05, z), route, "West_Leg_Lamp", Color3.fromRGB(193, 208, 188), 1.9, 32)
     end
@@ -656,7 +694,7 @@ local function buildWestServiceRoute()
         if x < -64 or x > -40 then table.insert(turnRibs, x) end
     end
     buildArchRibs("X", -100, -108, -3, 7.02, turnRibs, route, "West_Turn")
-    addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 8, route, 1)
+    addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 8, route, {{-50, 18}})
     for x = -144, -64, 30 do
         addCeilingLamp(Vector3.new(x, 3.05, -108), route, "West_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
     end
@@ -695,7 +733,7 @@ local function buildEastDrainExtension()
         if z < 248 then table.insert(ribs, z) end
     end
     buildArchRibs("Z", 35, 210, -3, 7.02, ribs, route, "East_Leg")
-    addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 8, route, 1)
+    addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 8, route, nil, {157, 253})
     for z = 180, 240, 30 do
         addCeilingLamp(Vector3.new(35, 3.05, z), route, "East_Leg_Lamp", Color3.fromRGB(193, 207, 188), 1.9, 32)
     end
@@ -714,7 +752,7 @@ local function buildEastDrainExtension()
         if x > 48 then table.insert(turnRibs, x) end
     end
     buildArchRibs("X", 85.5, 262, -3, 7.02, turnRibs, route, "East_Turn")
-    addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 8, route, 1)
+    addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 8, route, {{35, 18}})
     for x = 50, 130, 30 do
         addCeilingLamp(Vector3.new(x, 3.05, 262), route, "East_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
     end
