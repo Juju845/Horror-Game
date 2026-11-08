@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V11
+    HORROR GAME - SEWER LEVEL V12
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -99,8 +99,10 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
         and Vector3.new(length, 4, width)
         or Vector3.new(width, 4, length)
 
-    -- Exact voxel-aligned surface: water ends at world Y=0, below the walkways.
-    local waterFrame = CFrame.new(center.X, -2, center.Z)
+    -- Raise the dirty water close to the top of the retaining walls, while
+    -- leaving a small clearance under the crossing decks.
+    local waterTop = 0.22
+    local waterFrame = CFrame.new(center.X, waterTop - size.Y / 2, center.Z)
 
     -- Clear and refill only the channel volume. Terrain access/editing can be
     -- restricted by Studio sandbox capabilities, so keep a safe visual fallback.
@@ -118,7 +120,7 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
         local surface = part(
             name .. "_Water_Surface_Fallback",
             fallbackSize,
-            Vector3.new(center.X, -10.56, center.Z),
+            Vector3.new(center.X, -10.35, center.Z),
             Enum.Material.Glass,
             Color3.fromRGB(58, 62, 50),
             parent,
@@ -145,11 +147,11 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
             local startPosition
             local endPosition
             if axis == "X" then
-                startPosition = Vector3.new(center.X + startAlong, -10.43, center.Z + across)
-                endPosition = Vector3.new(center.X + endAlong, -10.43, center.Z + across)
+                startPosition = Vector3.new(center.X + startAlong, -10.25, center.Z + across)
+                endPosition = Vector3.new(center.X + endAlong, -10.25, center.Z + across)
             else
-                startPosition = Vector3.new(center.X + across, -10.43, center.Z + startAlong)
-                endPosition = Vector3.new(center.X + across, -10.43, center.Z + endAlong)
+                startPosition = Vector3.new(center.X + across, -10.25, center.Z + startAlong)
+                endPosition = Vector3.new(center.X + across, -10.25, center.Z + endAlong)
             end
 
             local patch = part(
@@ -223,8 +225,14 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
         end
     end
 
-    local bankY = -10.25
-    local bankColor = Color3.fromRGB(67, 72, 66)
+    -- Concrete retaining walls extend from the recessed riverbed to above
+    -- the waterline. Crossings are cut out of these walls so bridges sit flush.
+    local wallY = -10.875
+    local wallHeight = 3.25
+    local wallThickness = 0.8
+    local wallColor = Color3.fromRGB(67, 72, 66)
+    local capColor = Color3.fromRGB(90, 94, 85)
+
     for _, side in ipairs({-1, 1}) do
         for _, segment in ipairs(segments) do
             local segmentLength = segment[2] - segment[1]
@@ -232,20 +240,36 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
                 local positionAlong = (segment[1] + segment[2]) / 2
                 if axis == "X" then
                     part(
-                        name .. "_Raised_Channel_Bank",
-                        Vector3.new(segmentLength, 1.0, 0.55),
-                        Vector3.new(positionAlong, bankY, center.Z + side * 4.0),
+                        name .. "_Concrete_River_Wall",
+                        Vector3.new(segmentLength, wallHeight, wallThickness),
+                        Vector3.new(positionAlong, wallY, center.Z + side * 4.0),
                         Enum.Material.Concrete,
-                        bankColor,
+                        wallColor,
+                        parent
+                    )
+                    part(
+                        name .. "_River_Wall_Cap",
+                        Vector3.new(segmentLength, 0.16, 0.95),
+                        Vector3.new(positionAlong, -9.33, center.Z + side * 4.0),
+                        Enum.Material.Concrete,
+                        capColor,
                         parent
                     )
                 else
                     part(
-                        name .. "_Raised_Channel_Bank",
-                        Vector3.new(0.55, 1.0, segmentLength),
-                        Vector3.new(center.X + side * 4.0, bankY, positionAlong),
+                        name .. "_Concrete_River_Wall",
+                        Vector3.new(wallThickness, wallHeight, segmentLength),
+                        Vector3.new(center.X + side * 4.0, wallY, positionAlong),
                         Enum.Material.Concrete,
-                        bankColor,
+                        wallColor,
+                        parent
+                    )
+                    part(
+                        name .. "_River_Wall_Cap",
+                        Vector3.new(0.95, 0.16, segmentLength),
+                        Vector3.new(center.X + side * 4.0, -9.33, positionAlong),
+                        Enum.Material.Concrete,
+                        capColor,
                         parent
                     )
                 end
@@ -445,6 +469,59 @@ local function buildChannelFloor(name, axis, center, length, totalWidth, channel
     end
 end
 
+-- A fixed maintenance footbridge spans the water channel. Its upper deck
+-- is level with the dry walkways and its underside clears the raised waterline.
+local function addChannelBridge(name, axis, center, parent)
+    local deckSize = axis == "X"
+        and Vector3.new(6.2, 0.25, 8.8)
+        or Vector3.new(8.8, 0.25, 6.2)
+
+    local deck = part(
+        name .. "_Maintenance_Crossing",
+        deckSize,
+        Vector3.new(center.X, -10.105, center.Z),
+        Enum.Material.DiamondPlate,
+        Color3.fromRGB(76, 84, 79),
+        parent
+    )
+    deck.Reflectance = 0.08
+
+    -- Anti-slip ribs run across the bridge, not along the direction of travel.
+    for index = 1, 5 do
+        local offset = (index - 3) * 1.05
+        local ribSize
+        local ribPosition
+        if axis == "X" then
+            ribSize = Vector3.new(0.09, 0.08, 8.45)
+            ribPosition = Vector3.new(center.X + offset, -10.0, center.Z)
+        else
+            ribSize = Vector3.new(8.45, 0.08, 0.09)
+            ribPosition = Vector3.new(center.X, -10.0, center.Z + offset)
+        end
+        local rib = part(
+            name .. "_Bridge_AntiSlip_Rib",
+            ribSize,
+            ribPosition,
+            Enum.Material.Metal,
+            Color3.fromRGB(111, 116, 106),
+            parent
+        )
+        rib.CanCollide = false
+    end
+end
+
+local function addChannelBridges(name, axis, center, parent, positions)
+    for index, along in ipairs(positions) do
+        local bridgeCenter
+        if axis == "X" then
+            bridgeCenter = Vector3.new(along, center.Y, center.Z)
+        else
+            bridgeCenter = Vector3.new(center.X, center.Y, along)
+        end
+        addChannelBridge(name .. "_" .. index, axis, bridgeCenter, parent)
+    end
+end
+
 local function buildMainTunnel()
     local tunnel = makeModel("Main_Sewer_Tunnel")
 
@@ -471,9 +548,12 @@ local function buildMainTunnel()
     buildArchRibs("X", 0, 0, -3, 7.02, ribPositions, tunnel, "Main")
 
     -- The main stream branches into the side corridors at both junctions.
-    addFlowingWater("Main_Channel", "X", Vector3.new(40, -9.94, 0), 312, 8, tunnel, {{-50, 18}, {35, 18}})
+    addFlowingWater("Main_Channel", "X", Vector3.new(40, -9.94, 0), 312, 8, tunnel, {{-50, 18}, {35, 18}, {-96, 6.5}, {-10, 6.5}, {90, 6.5}, {160, 6.5}})
+    addChannelBridges("Main", "X", Vector3.new(40, -10.5, 0), tunnel, {-96, -10, 90, 160})
     addFlowingWater("Main_Right_Junction", "Z", Vector3.new(35, -9.94, 4.5), 12, 8, tunnel, false)
     addFlowingWater("Main_Left_Junction", "Z", Vector3.new(-50, -9.94, -4.5), 12, 8, tunnel, false)
+    addChannelBridges("Main_Right_Junction", "Z", Vector3.new(35, -10.5, 4.5), tunnel, {4.5})
+    addChannelBridges("Main_Left_Junction", "Z", Vector3.new(-50, -10.5, -4.5), tunnel, {-4.5})
 
     -- Wall pipes are split at both side-tunnel portals, so pipes never cross an entrance.
     for _, side in ipairs({-1, 1}) do
@@ -643,7 +723,8 @@ local function buildBranchAndPumpRoom()
     for z = 16, 104, 16 do table.insert(branchRibs, z) end
     buildArchRibs("Z", 35, 60, -3, 7.02, branchRibs, branch, "Branch")
 
-    addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 104, 8, branch, nil)
+    addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 104, 8, branch, {{40, 6.5}, {80, 6.5}}, {14, 106})
+    addChannelBridges("Branch", "Z", Vector3.new(35, -10.5, 60), branch, {40, 80})
 
     for _, x in ipairs({27.2, 42.8}) do
         local branchPipe = cylinder("Branch_Rusted_Pipe", 96, 0.6, Vector3.new(x, -5.2, 60), Enum.Material.CorrodedMetal, Color3.fromRGB(83, 57, 43), branch, Vector3.new(0, 90, 0))
@@ -673,7 +754,8 @@ local function buildBranchAndPumpRoom()
     part("Pump_Entry_Right_Wall", Vector3.new(16, 14, 1), Vector3.new(52, -3.5, 110), Enum.Material.Concrete, concrete, room)
     part("Pump_Entry_Header", Vector3.new(18, 2, 1), Vector3.new(35, 2.5, 110), Enum.Material.Concrete, concreteDark, room)
 
-    addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 8, room, nil)
+    addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 8, room, {{132, 6.5}}, {114, 154})
+    addChannelBridges("Pump_Room", "Z", Vector3.new(35, -10.5, 134), room, {132})
     part("Pump_Base", Vector3.new(13, 1.2, 10), Vector3.new(17.5, -9.35, 142), Enum.Material.Metal, rust, room)
     local filterTank = cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(17.5, -4.1, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(68, 75, 68), room, Vector3.new(0, 0, 90))
     filterTank.Reflectance = 0.12
@@ -759,7 +841,8 @@ local function buildWestServiceRoute()
         if z > -100 then table.insert(ribs, z) end
     end
     buildArchRibs("Z", -50, -62, -3, 7.02, ribs, route, "West_Leg")
-    addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 8, route, nil, {-98, -8})
+    addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 8, route, {{-32, 6.5}, {-72, 6.5}}, {-98, -8})
+    addChannelBridges("West_Leg", "Z", Vector3.new(-50, -10.5, -62), route, {-32, -72})
     for z = -96, -24, 30 do
         addCeilingLamp(Vector3.new(-50, 3.05, z), route, "West_Leg_Lamp", Color3.fromRGB(193, 208, 188), 1.9, 32)
     end
@@ -779,7 +862,8 @@ local function buildWestServiceRoute()
         if x < -64 or x > -40 then table.insert(turnRibs, x) end
     end
     buildArchRibs("X", -100, -108, -3, 7.02, turnRibs, route, "West_Turn")
-    addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 8, route, {{-50, 18}})
+    addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 8, route, {{-50, 18}, {-130, 6.5}, {-90, 6.5}})
+    addChannelBridges("West_Turn", "X", Vector3.new(-100, -10.5, -108), route, {-130, -90})
     for x = -144, -64, 30 do
         addCeilingLamp(Vector3.new(x, 3.05, -108), route, "West_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
     end
@@ -795,7 +879,8 @@ local function buildWestServiceRoute()
     part("West_Chamber_Entry_Wall_South", Vector3.new(1, 14, 14), Vector3.new(-160, -3.5, -92), Enum.Material.Concrete, concrete, chamber)
     part("West_Chamber_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(-160, 2.5, -108), Enum.Material.Concrete, concreteDark, chamber)
 
-    addFlowingWater("West_Chamber_Runoff", "X", Vector3.new(-185, -9.94, -108), 50, 8, chamber, nil)
+    addFlowingWater("West_Chamber_Runoff", "X", Vector3.new(-185, -9.94, -108), 50, 8, chamber, {{-185, 6.5}})
+    addChannelBridges("West_Chamber", "X", Vector3.new(-185, -10.5, -108), chamber, {-185})
     local wheelHub = cylinder("West_Main_Valve_Hub", 1.1, 3.1, Vector3.new(-204, -3.7, -108), Enum.Material.Metal, rust, chamber, Vector3.new(0, 90, 0))
     part("West_Valve_Wheel_Vertical", Vector3.new(0.35, 5, 0.35), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
     part("West_Valve_Wheel_Horizontal", Vector3.new(0.35, 0.35, 5), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
@@ -818,7 +903,8 @@ local function buildEastDrainExtension()
         if z < 248 then table.insert(ribs, z) end
     end
     buildArchRibs("Z", 35, 210, -3, 7.02, ribs, route, "East_Leg")
-    addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 8, route, nil, {157, 253})
+    addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 8, route, {{185, 6.5}, {220, 6.5}}, {157, 253})
+    addChannelBridges("East_Leg", "Z", Vector3.new(35, -10.5, 210), route, {185, 220})
     for z = 180, 240, 30 do
         addCeilingLamp(Vector3.new(35, 3.05, z), route, "East_Leg_Lamp", Color3.fromRGB(193, 207, 188), 1.9, 32)
     end
@@ -838,7 +924,8 @@ local function buildEastDrainExtension()
         if x > 48 then table.insert(turnRibs, x) end
     end
     buildArchRibs("X", 85.5, 262, -3, 7.02, turnRibs, route, "East_Turn")
-    addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 8, route, {{35, 18}})
+    addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 8, route, {{35, 18}, {80, 6.5}, {120, 6.5}})
+    addChannelBridges("East_Turn", "X", Vector3.new(85.5, -10.5, 262), route, {80, 120})
     for x = 50, 130, 30 do
         addCeilingLamp(Vector3.new(x, 3.05, 262), route, "East_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
     end
@@ -854,7 +941,8 @@ local function buildEastDrainExtension()
     part("Sluice_Entry_South", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 277.5), Enum.Material.Concrete, concrete, chamber)
     part("Sluice_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(135, 2.5, 262), Enum.Material.Concrete, concreteDark, chamber)
 
-    addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 50, 8, chamber, nil)
+    addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 50, 8, chamber, {{160, 6.5}})
+    addChannelBridges("Sluice", "X", Vector3.new(160, -10.5, 262), chamber, {160})
     local tank = cylinder("Sluice_Filter_Tank", 11, 8, Vector3.new(174, -4.1, 270), Enum.Material.Metal, Color3.fromRGB(67, 76, 69), chamber, Vector3.new(0, 0, 90))
     tank.Material = Enum.Material.CorrodedMetal
     part("Sluice_Tank_Cap", Vector3.new(8.5, 0.45, 8.5), Vector3.new(174, 1.05, 270), Enum.Material.Metal, rust, chamber)
@@ -931,9 +1019,9 @@ local function configureSewerPlayer(player, character)
 
     if humanoid then
         humanoid.UseJumpPower = true
-        humanoid.JumpPower = 0
-        humanoid.JumpHeight = 0
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
+        humanoid.JumpPower = 40
+        humanoid.JumpHeight = 5
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
     end
 
     -- Wait for the root part before moving an already-spawned character or a
@@ -1003,4 +1091,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V11 loaded: spawn fixed on dry walkway, native wavy water with subtle drifting surface flecks, clear turns and sealed routes. No flashlight.")
+print("[Horror Game] Sewer V12 loaded: higher full-length water, raised concrete channel walls, metal crossing bridges and jump recovery enabled.")
