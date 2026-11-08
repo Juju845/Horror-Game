@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V10
+    HORROR GAME - SEWER LEVEL V11
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -8,6 +8,7 @@ local Lighting = game:GetService("Lighting")
 local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local StarterPack = game:GetService("StarterPack")
+local TweenService = game:GetService("TweenService")
 
 -- The first Rojo template may leave its default Baseplate in an existing Studio place.
 -- It would cover the sewer because the old blockout used negative Y coordinates.
@@ -127,6 +128,61 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
         surface.CanTouch = false
         surface.CanQuery = false
         surface.Reflectance = 0.18
+    end
+
+    -- A few small oily surface traces drift slowly with the current. Native Terrain
+    -- Water supplies the waves; these subtle, low-profile flecks provide visible flow.
+    if length >= 32 then
+        local patchCount = math.clamp(math.floor(length / 75), 1, 4)
+        for index = 1, patchCount do
+            local fraction = (index - 1) / math.max(1, patchCount - 1)
+            local across = (((index * 5) % 7) / 7 - 0.5) * width * 0.42
+            local startAlong = -length * 0.42 + fraction * length * 0.18
+            local endAlong = math.min(length * 0.43, startAlong + 30 + (index % 2) * 14)
+            local patchSize = axis == "X"
+                and Vector3.new(1.3 + (index % 2) * 0.5, 0.035, 0.24 + (index % 2) * 0.08)
+                or Vector3.new(0.24 + (index % 2) * 0.08, 0.035, 1.3 + (index % 2) * 0.5)
+            local startPosition
+            local endPosition
+            if axis == "X" then
+                startPosition = Vector3.new(center.X + startAlong, -10.43, center.Z + across)
+                endPosition = Vector3.new(center.X + endAlong, -10.43, center.Z + across)
+            else
+                startPosition = Vector3.new(center.X + across, -10.43, center.Z + startAlong)
+                endPosition = Vector3.new(center.X + across, -10.43, center.Z + endAlong)
+            end
+
+            local patch = part(
+                name .. "_Drifting_Surface_Fleck",
+                patchSize,
+                startPosition,
+                Enum.Material.SmoothPlastic,
+                Color3.fromRGB(105, 101, 76),
+                parent,
+                0.58
+            )
+            patch.Shape = Enum.PartType.Ball
+            patch.CanCollide = false
+            patch.CanTouch = false
+            patch.CanQuery = false
+            patch.CastShadow = false
+
+            task.spawn(function()
+                while patch.Parent do
+                    local tween = TweenService:Create(
+                        patch,
+                        TweenInfo.new(7 + (index % 3) * 1.5, Enum.EasingStyle.Linear),
+                        {Position = endPosition}
+                    )
+                    tween:Play()
+                    local state = tween.Completed:Wait()
+                    if state ~= Enum.PlaybackState.Completed or not patch.Parent then
+                        break
+                    end
+                    patch.Position = startPosition
+                end
+            end)
+        end
     end
 
     -- At an elbow, shorten the concrete banks around the joining passage.
@@ -939,4 +995,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V10 loaded: spawn fixed on dry walkway, all water channels generated, open 90-degree turns and improved dirty-water surface. No flashlight.")
+print("[Horror Game] Sewer V11 loaded: spawn fixed on dry walkway, native wavy water with subtle drifting surface flecks, clear turns and sealed routes. No flashlight.")
