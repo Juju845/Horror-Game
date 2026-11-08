@@ -1050,6 +1050,244 @@ local function buildEntrance()
     signText.Parent = signGui
 end
 
+-- VISUAL OVERHAUL: modular wall cladding, industrial service lights, safety
+-- markings, premium steel crossings and pump-station architecture. Visual only.
+local function addIndustrialWallPanels(name, axis, startAlong, endAlong, spacing, sidePositions, parent, skippedRanges)
+    local function isSkipped(value)
+        for _, range in ipairs(skippedRanges or {}) do
+            if value >= range[1] and value <= range[2] then
+                return true
+            end
+        end
+        return false
+    end
+
+    for sideIndex, fixed in ipairs(sidePositions) do
+        local sideKey = sideIndex == 1 and "A" or "B"
+        for along = startAlong, endAlong, spacing do
+            if not isSkipped(along) then
+                local panelSize = axis == "X"
+                    and Vector3.new(5.2, 2.65, 0.16)
+                    or Vector3.new(0.16, 2.65, 5.2)
+                local panelPosition = axis == "X"
+                    and Vector3.new(along, -5.55, fixed)
+                    or Vector3.new(fixed, -5.55, along)
+
+                local panel = part(
+                    name .. "_" .. sideKey .. "_Wall_Module",
+                    panelSize,
+                    panelPosition,
+                    Enum.Material.DiamondPlate,
+                    (math.floor(along / spacing) % 2 == 0)
+                        and Color3.fromRGB(48, 59, 60)
+                        or Color3.fromRGB(57, 65, 64),
+                    parent
+                )
+                panel.CanCollide = false
+                panel.Reflectance = 0.06
+
+                -- Raised perimeter rails and vertical louvers make the panels feel fabricated.
+                for _, edge in ipairs({-2.48, 2.48}) do
+                    local trimSize = axis == "X"
+                        and Vector3.new(0.13, 2.82, 0.22)
+                        or Vector3.new(0.22, 2.82, 0.13)
+                    local trimPosition = axis == "X"
+                        and Vector3.new(along + edge, -5.55, fixed)
+                        or Vector3.new(fixed, -5.55, along + edge)
+                    local trim = part(name .. "_Panel_Frame", trimSize, trimPosition, Enum.Material.Metal, Color3.fromRGB(34, 43, 44), parent)
+                    trim.CanCollide = false
+                end
+
+                for _, height in ipairs({-6.88, -4.22}) do
+                    local trimSize = axis == "X"
+                        and Vector3.new(5.18, 0.12, 0.22)
+                        or Vector3.new(0.22, 0.12, 5.18)
+                    local trimPosition = axis == "X"
+                        and Vector3.new(along, height, fixed)
+                        or Vector3.new(fixed, height, along)
+                    local trim = part(name .. "_Panel_Horizontal_Trim", trimSize, trimPosition, Enum.Material.Metal, Color3.fromRGB(35, 44, 44), parent)
+                    trim.CanCollide = false
+                end
+
+                for louver = -1, 1 do
+                    local louverSize = axis == "X"
+                        and Vector3.new(0.1, 1.1, 0.08)
+                        or Vector3.new(0.08, 1.1, 0.1)
+                    local louverPosition = axis == "X"
+                        and Vector3.new(along + louver * 0.55, -5.65, fixed + (fixed < 0 and 0.13 or -0.13))
+                        or Vector3.new(fixed + (fixed < 0 and 0.13 or -0.13), -5.65, along + louver * 0.55)
+                    local slat = part(name .. "_Panel_Louver", louverSize, louverPosition, Enum.Material.Metal, Color3.fromRGB(93, 103, 99), parent)
+                    slat.CanCollide = false
+                end
+
+                local accentPosition = axis == "X"
+                    and Vector3.new(along + 1.95, -4.75, fixed + (fixed < 0 and 0.16 or -0.16))
+                    or Vector3.new(fixed + (fixed < 0 and 0.16 or -0.16), -4.75, along + 1.95)
+                local accentSize = axis == "X"
+                    and Vector3.new(0.12, 0.42, 0.07)
+                    or Vector3.new(0.07, 0.42, 0.12)
+                local indicator = part(name .. "_Teal_Status_Indicator", accentSize, accentPosition, Enum.Material.Neon, Color3.fromRGB(76, 177, 164), parent)
+                indicator.CanCollide = false
+                indicator.CastShadow = false
+
+                if math.floor(along / spacing) % 2 == 0 then
+                    local tabPosition = axis == "X"
+                        and Vector3.new(along - 1.95, -6.55, fixed + (fixed < 0 and 0.16 or -0.16))
+                        or Vector3.new(fixed + (fixed < 0 and 0.16 or -0.16), -6.55, along - 1.95)
+                    local tabSize = axis == "X"
+                        and Vector3.new(0.13, 0.45, 0.07)
+                        or Vector3.new(0.07, 0.45, 0.13)
+                    local tab = part(name .. "_Amber_Service_Tab", tabSize, tabPosition, Enum.Material.Neon, yellow, parent)
+                    tab.CanCollide = false
+                    tab.CastShadow = false
+                end
+            end
+        end
+    end
+end
+
+local function addWalkwaySafetyLines(name, axis, center, length, parent)
+    for _, side in ipairs({-1, 1}) do
+        local lineSize = axis == "X"
+            and Vector3.new(length, 0.035, 0.16)
+            or Vector3.new(0.16, 0.035, length)
+        local linePosition = axis == "X"
+            and Vector3.new(center.X, -9.965, center.Z + side * 4.18)
+            or Vector3.new(center.X + side * 4.18, -9.965, center.Z)
+        local line = part(name .. "_Walkway_Safety_Line", lineSize, linePosition, Enum.Material.Neon, yellow, parent, 0.22)
+        line.CanCollide = false
+        line.CastShadow = false
+    end
+end
+
+local function addWallMountedServiceLights(name, axis, positions, fixedSides, parent)
+    for _, along in ipairs(positions) do
+        for _, fixed in ipairs(fixedSides) do
+            local holderSize = axis == "X" and Vector3.new(0.45, 1.1, 0.35) or Vector3.new(0.35, 1.1, 0.45)
+            local holderPosition = axis == "X"
+                and Vector3.new(along, -3.35, fixed)
+                or Vector3.new(fixed, -3.35, along)
+            local holder = part(name .. "_Wall_Light_Housing", holderSize, holderPosition, Enum.Material.Metal, Color3.fromRGB(32, 41, 41), parent)
+
+            local lensSize = axis == "X" and Vector3.new(0.22, 0.72, 0.12) or Vector3.new(0.12, 0.72, 0.22)
+            local lensPosition = axis == "X"
+                and Vector3.new(along, -3.35, fixed + (fixed < 0 and 0.24 or -0.24))
+                or Vector3.new(fixed + (fixed < 0 and 0.24 or -0.24), -3.35, along)
+            local lens = part(name .. "_Wall_Light_Lens", lensSize, lensPosition, Enum.Material.Neon, Color3.fromRGB(107, 184, 170), parent)
+            lens.CanCollide = false
+            lens.CastShadow = false
+
+            local light = Instance.new("PointLight")
+            light.Color = Color3.fromRGB(115, 190, 174)
+            light.Brightness = 0.35
+            light.Range = 10
+            light.Shadows = false
+            light.Parent = lens
+        end
+    end
+end
+
+local function addIndustrialSign(name, wording, position, size, face, parent)
+    local sign = part(name .. "_Backplate", size, position, Enum.Material.Metal, Color3.fromRGB(26, 36, 38), parent)
+    local edge = Instance.new("SurfaceGui")
+    edge.Name = name .. "_Display"
+    edge.Face = face
+    edge.PixelsPerStud = 32
+    edge.Parent = sign
+
+    local label = Instance.new("TextLabel")
+    label.Size = UDim2.fromScale(1, 1)
+    label.BackgroundTransparency = 1
+    label.Text = wording
+    label.TextColor3 = Color3.fromRGB(136, 204, 188)
+    label.TextScaled = true
+    label.Font = Enum.Font.GothamBold
+    label.Parent = edge
+    return sign
+end
+
+local function addPumpRoomVisuals()
+    local room = world:FindFirstChild("Old_Pump_Room")
+    if not room then return end
+
+    -- A high steel gantry frames the equipment and gives the pump chamber scale.
+    for _, x in ipairs({13, 57}) do
+        for _, z in ipairs({120, 148}) do
+            part("Pump_Gantry_Column", Vector3.new(0.55, 12.5, 0.55), Vector3.new(x, -3.0, z), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
+        end
+    end
+    part("Pump_Gantry_Beam_Front", Vector3.new(44, 0.65, 0.65), Vector3.new(35, 3.0, 120), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
+    part("Pump_Gantry_Beam_Back", Vector3.new(44, 0.65, 0.65), Vector3.new(35, 3.0, 148), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
+    part("Pump_Gantry_Cross_Beam", Vector3.new(0.65, 0.65, 28), Vector3.new(35, 3.0, 134), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
+
+    -- Large pressure lines run over the pumps and connect the two walls.
+    for _, z in ipairs({120, 124, 144, 148}) do
+        local pipe = cylinder("Pump_Room_Overhead_Pressure_Line", 42, 0.78, Vector3.new(35, 1.55, z), Enum.Material.CorrodedMetal, Color3.fromRGB(77, 57, 46), room)
+        pipe.Reflectance = 0.1
+    end
+
+    -- A readable industrial station identifier on the right-side wall.
+    addIndustrialSign(
+        "Pump_Room_Industrial_ID",
+        "PUMP STATION  /  02",
+        Vector3.new(59.25, -3.1, 136),
+        Vector3.new(0.18, 2.8, 8),
+        Enum.NormalId.Left,
+        room
+    )
+end
+
+local function buildVisualOverhaul()
+    local main = world:FindFirstChild("Main_Sewer_Tunnel")
+    if main then
+        addIndustrialWallPanels("Main", "X", -104, 184, 32, {-7.38, 7.38}, main, {{-64, -32}, {24, 48}})
+        addWallMountedServiceLights("Main", "X", {-88, -24, 72, 136}, {-7.2, 7.2}, main)
+        addWalkwaySafetyLines("Main", "X", Vector3.new(40, -10.5, 0), 300, main)
+
+        -- Three large overhead manifolds create the silhouette of a major utility tunnel.
+        cylinder("Main_Ceiling_Manifold", 286, 1.0, Vector3.new(40, 3.55, -1.8), Enum.Material.Metal, Color3.fromRGB(47, 57, 58), main)
+        cylinder("Main_Ceiling_Utility_Line_A", 286, 0.42, Vector3.new(40, 2.65, -3.8), Enum.Material.Metal, Color3.fromRGB(93, 105, 101), main)
+        cylinder("Main_Ceiling_Utility_Line_B", 286, 0.42, Vector3.new(40, 2.65, 3.8), Enum.Material.Metal, Color3.fromRGB(93, 105, 101), main)
+        for x = -96, 176, 32 do
+            local support = part("Main_Ceiling_Manifold_Hanger", Vector3.new(0.35, 1.1, 0.35), Vector3.new(x, 3.8, -1.8), Enum.Material.Metal, Color3.fromRGB(37, 46, 47), main)
+            support.CanCollide = false
+        end
+    end
+
+    local branch = world:FindFirstChild("Pump_Room_Access")
+    if branch then
+        addIndustrialWallPanels("Branch", "Z", 20, 100, 32, {26.55, 43.45}, branch)
+        addWallMountedServiceLights("Branch", "Z", {32, 70, 96}, {26.3, 43.7}, branch)
+        addWalkwaySafetyLines("Branch", "Z", Vector3.new(35, -10.5, 60), 95, branch)
+    end
+
+    local west = world:FindFirstChild("West_Service_Route")
+    if west then
+        addIndustrialWallPanels("West_Leg", "Z", -92, -20, 32, {-58.55, -41.45}, west)
+        addIndustrialWallPanels("West_Turn", "X", -144, -56, 32, {-99.55, -116.45}, west, {{-64, -32}})
+        addWallMountedServiceLights("West_Leg", "Z", {-88, -48, -16}, {-58.3, -41.7}, west)
+        addWalkwaySafetyLines("West_Leg", "Z", Vector3.new(-50, -10.5, -62), 90, west)
+        addWalkwaySafetyLines("West_Turn", "X", Vector3.new(-100, -10.5, -108), 105, west)
+
+        cylinder("West_Turn_Ceiling_Pipe_A", 105, 0.6, Vector3.new(-100, 3.6, -120), Enum.Material.CorrodedMetal, Color3.fromRGB(81, 57, 45), west)
+        cylinder("West_Turn_Ceiling_Pipe_B", 105, 0.6, Vector3.new(-100, 3.6, -96), Enum.Material.CorrodedMetal, Color3.fromRGB(81, 57, 45), west)
+    end
+
+    local east = world:FindFirstChild("East_Drain_Extension")
+    if east then
+        addIndustrialWallPanels("East_Leg", "Z", 176, 240, 32, {26.55, 43.45}, east)
+        addIndustrialWallPanels("East_Turn", "X", 48, 144, 32, {253.55, 270.45}, east, {{24, 48}})
+        addWallMountedServiceLights("East_Leg", "Z", {184, 224}, {26.3, 43.7}, east)
+        addWalkwaySafetyLines("East_Leg", "Z", Vector3.new(35, -10.5, 210), 90, east)
+        addWalkwaySafetyLines("East_Turn", "X", Vector3.new(85.5, -10.5, 262), 105, east)
+
+        cylinder("East_Leg_Overhead_Service_Pipe_A", 94, 0.42, Vector3.new(35, 3.4, 210), Enum.Material.Metal, Color3.fromRGB(83, 97, 94), east, Vector3.new(0, 90, 0))
+        cylinder("East_Leg_Overhead_Service_Pipe_B", 94, 0.42, Vector3.new(38, 3.4, 210), Enum.Material.Metal, Color3.fromRGB(83, 97, 94), east, Vector3.new(0, 90, 0))
+    end
+
+    addPumpRoomVisuals()
+end
+
 -- Flashlight inventory was intentionally removed: the sewer lighting is bright enough.
 
 configureLighting()
@@ -1059,6 +1297,7 @@ buildBranchAndPumpRoom()
 buildEastDrainExtension()
 buildSecurityGate()
 buildEntrance()
+buildVisualOverhaul()
 
 -- A solid but invisible spawn pad sits flush with the dry right-hand walkway.
 -- The earlier script removed the template spawn and failed before creating this one.
