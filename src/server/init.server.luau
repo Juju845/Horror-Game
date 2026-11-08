@@ -198,9 +198,7 @@ local function addWater(name, axis, centerX, centerZ, length, width, parent)
         local fallbackSize = axis == "X"
             and Vector3.new(length, 0.12, width)
             or Vector3.new(width, 0.12, length)
-        local fallbackPosition = axis == "X"
-            and Vector3.new(centerX, WATER_LOCAL_Y, centerZ)
-            or Vector3.new(centerX, WATER_LOCAL_Y, centerZ)
+        local fallbackPosition = Vector3.new(centerX, WATER_LOCAL_Y, centerZ)
         local surface = part(name .. "_Water_Surface", fallbackSize, fallbackPosition, Enum.Material.Glass, C.water, parent, 0.16, false)
         surface.Reflectance = 0.2
     end
@@ -749,7 +747,7 @@ local function buildSluiceHall()
     for _, x in ipairs({205, 231, 257}) do
         addLamp("Sluice_Hall_LED", Vector3.new(x, 7.0, centerZ), hall, 3.0, 48)
     end
-    addIndustrialSign("Sluice_Hall_Sign", "MAIN SLUICE  /  04", Vector3.new(270.0, 4.5, centerZ), Vector3.new(0.2, 3.2, 13), Enum.NormalId.Left, hall)
+    addIndustrialSign("Sluice_Hall_Sign", "MAIN SLUICE  /  04", Vector3.new(271.2, 4.5, centerZ), Vector3.new(0.2, 3.2, 13), Enum.NormalId.Left, hall)
 
     local beacon = part("Sluice_Red_Beacon", Vector3.new(1.6, 0.8, 1.6), Vector3.new(255, 6.4, centerZ + 33), Enum.Material.Neon, C.red, hall, 0, false)
     local redLight = Instance.new("PointLight")
@@ -770,7 +768,7 @@ local function addMainTunnelGate()
         part("Gate_Vertical_Bar", Vector3.new(0.4, 10.5, 0.4), Vector3.new(x, -4.2, z), Enum.Material.CorrodedMetal, C.rust, gate)
     end
     part("Gate_Warning_Plate", Vector3.new(0.4, 2.8, 10), Vector3.new(x - 0.3, -2.0, 0), Enum.Material.Metal, C.steel, gate)
-    addIndustrialSign("Gate_Zone_Sign", "RESTRICTED  /  SECTOR 04", Vector3.new(x - 0.55, -2.0, -0.1), Vector3.new(0.15, 2.8, 9), Enum.NormalId.Right, gate)
+    addIndustrialSign("Gate_Zone_Sign", "RESTRICTED  /  SECTOR 04", Vector3.new(x - 0.75, -2.0, -0.1), Vector3.new(0.15, 2.8, 9), Enum.NormalId.Right, gate)
 
     local warning = part("Gate_Alarm_Beacon", Vector3.new(0.7, 0.7, 0.7), Vector3.new(x - 1, 1.1, -13.5), Enum.Material.Neon, C.red, gate, 0, false)
     local light = Instance.new("PointLight")
@@ -797,7 +795,7 @@ local function buildMainSewer()
     addEndWallX("Main_Entrance_Seal", -140, 0, 17, main)
     addEndWallX("Main_Far_Seal", 140, 0, 17, main)
 
-    addIndustrialSign("Main_Concourse_ID", "DRAINAGE CONCOURSE  /  LINE 01", Vector3.new(-98, -2.3, -16.2), Vector3.new(13, 3.2, 0.22), Enum.NormalId.Back, main)
+    addIndustrialSign("Main_Concourse_ID", "DRAINAGE CONCOURSE  /  LINE 01", Vector3.new(-98, -2.3, -15.78), Vector3.new(13, 3.2, 0.22), Enum.NormalId.Back, main)
 
     -- Heavy maintenance supports at the entrance and along the main gallery.
     for x = -126, 126, 36 do
@@ -828,7 +826,7 @@ local function buildWestRoute()
     addRiverWallsZ("West_T_Junction", -17, -5, -55, 10, world, {})
 
     local hall = buildPumpHall()
-    addIndustrialSign("West_Collector_ID", "COLLECTOR  /  PUMP ACCESS", Vector3.new(-70.0, -2.2, -18), Vector3.new(0.22, 3, 10), Enum.NormalId.Right, branch)
+    addIndustrialSign("West_Collector_ID", "COLLECTOR  /  PUMP ACCESS", Vector3.new(-68.75, -2.2, -18), Vector3.new(0.22, 3, 10), Enum.NormalId.Right, branch)
     return branch, hall
 end
 
@@ -845,7 +843,7 @@ local function buildEastRoute()
     local cross = buildTunnelX("East_Transfer_Gallery", 50, 190, 150, 34, world, {{65, 30}}, {}, {82, 142})
     addEndWallX("East_Transfer_West_End", 50, 150, 17, cross)
     local hall = buildSluiceHall()
-    addIndustrialSign("East_Service_ID", "EAST SERVICE  /  LINE 02", Vector3.new(77.5, -2.2, 18), Vector3.new(0.22, 3, 10), Enum.NormalId.Left, branch)
+    addIndustrialSign("East_Service_ID", "EAST SERVICE  /  LINE 02", Vector3.new(78.75, -2.2, 18), Vector3.new(0.22, 3, 10), Enum.NormalId.Left, branch)
     return branch, cross, hall
 end
 
@@ -862,7 +860,7 @@ local function buildEntrance()
             part("Entry_Railing_Post", Vector3.new(0.22, 1.5, 0.22), Vector3.new(x, -9.1, z), Enum.Material.Metal, C.steelMid, entry)
         end
     end
-    addIndustrialSign("Entry_Portal_ID", "ACCESS 04  /  DRAINAGE", Vector3.new(-130, -2.1, -16.2), Vector3.new(11, 3, 0.25), Enum.NormalId.Back, entry)
+    addIndustrialSign("Entry_Portal_ID", "ACCESS 04  /  DRAINAGE", Vector3.new(-130, -2.1, -15.78), Vector3.new(11, 3, 0.25), Enum.NormalId.Back, entry)
 end
 
 local function placePlayer(player, character, spawn)
