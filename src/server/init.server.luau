@@ -927,6 +927,8 @@ spawn.Parent = world
 
 local function configureSewerPlayer(player, character)
     local humanoid = character:WaitForChild("Humanoid", 10)
+    local root = character:WaitForChild("HumanoidRootPart", 10)
+
     if humanoid then
         humanoid.UseJumpPower = true
         humanoid.JumpPower = 0
@@ -934,9 +936,13 @@ local function configureSewerPlayer(player, character)
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, false)
     end
 
-    -- Move an already-spawned character as well as future characters onto
-    -- the confirmed dry walkway. The root stands about 3.2 studs above the pad.
-    character:PivotTo(spawn.CFrame * CFrame.new(0, 3.2, 0))
+    -- Wait for the root part before moving an already-spawned character or a
+    -- freshly loaded character onto the dry walkway, facing down the main tunnel.
+    if root then
+        character:PivotTo(spawn.CFrame * CFrame.new(0, 3.2, 0))
+    else
+        warn("[Horror Game] Character root was not ready for sewer spawn placement.")
+    end
 end
 
 local function bindSewerPlayer(player)
