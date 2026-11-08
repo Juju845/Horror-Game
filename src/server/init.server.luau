@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V12
+    HORROR GAME - SEWER LEVEL V13
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -101,7 +101,7 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
 
     -- Raise the dirty water close to the top of the retaining walls, while
     -- leaving a small clearance under the crossing decks.
-    local waterTop = 0.22
+    local waterTop = 0.38
     local waterFrame = CFrame.new(center.X, waterTop - size.Y / 2, center.Z)
 
     -- Clear and refill only the channel volume. Terrain access/editing can be
@@ -120,7 +120,7 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
         local surface = part(
             name .. "_Water_Surface_Fallback",
             fallbackSize,
-            Vector3.new(center.X, -10.35, center.Z),
+            Vector3.new(center.X, -10.18, center.Z),
             Enum.Material.Glass,
             Color3.fromRGB(58, 62, 50),
             parent,
@@ -147,11 +147,11 @@ local function addFlowingWater(name, axis, center, length, width, parent, bankOp
             local startPosition
             local endPosition
             if axis == "X" then
-                startPosition = Vector3.new(center.X + startAlong, -10.25, center.Z + across)
-                endPosition = Vector3.new(center.X + endAlong, -10.25, center.Z + across)
+                startPosition = Vector3.new(center.X + startAlong, -10.05, center.Z + across)
+                endPosition = Vector3.new(center.X + endAlong, -10.05, center.Z + across)
             else
-                startPosition = Vector3.new(center.X + across, -10.25, center.Z + startAlong)
-                endPosition = Vector3.new(center.X + across, -10.25, center.Z + endAlong)
+                startPosition = Vector3.new(center.X + across, -10.05, center.Z + startAlong)
+                endPosition = Vector3.new(center.X + across, -10.05, center.Z + endAlong)
             end
 
             local patch = part(
@@ -473,13 +473,13 @@ end
 -- is level with the dry walkways and its underside clears the raised waterline.
 local function addChannelBridge(name, axis, center, parent)
     local deckSize = axis == "X"
-        and Vector3.new(6.2, 0.25, 8.8)
-        or Vector3.new(8.8, 0.25, 6.2)
+        and Vector3.new(6.2, 0.12, 8.8)
+        or Vector3.new(8.8, 0.12, 6.2)
 
     local deck = part(
         name .. "_Maintenance_Crossing",
         deckSize,
-        Vector3.new(center.X, -10.105, center.Z),
+        Vector3.new(center.X, -10.0, center.Z),
         Enum.Material.DiamondPlate,
         Color3.fromRGB(76, 84, 79),
         parent
@@ -493,10 +493,10 @@ local function addChannelBridge(name, axis, center, parent)
         local ribPosition
         if axis == "X" then
             ribSize = Vector3.new(0.09, 0.08, 8.45)
-            ribPosition = Vector3.new(center.X + offset, -10.0, center.Z)
+            ribPosition = Vector3.new(center.X + offset, -9.91, center.Z)
         else
             ribSize = Vector3.new(8.45, 0.08, 0.09)
-            ribPosition = Vector3.new(center.X, -10.0, center.Z + offset)
+            ribPosition = Vector3.new(center.X, -9.91, center.Z + offset)
         end
         local rib = part(
             name .. "_Bridge_AntiSlip_Rib",
@@ -1019,7 +1019,7 @@ local function configureSewerPlayer(player, character)
 
     if humanoid then
         humanoid.UseJumpPower = true
-        humanoid.JumpPower = 40
+        humanoid.JumpPower = 42
         humanoid.JumpHeight = 5
         humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
     end
@@ -1091,4 +1091,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V12 loaded: higher full-length water, raised concrete channel walls, metal crossing bridges and jump recovery enabled.")
+print("[Horror Game] Sewer V13 loaded: high dirty-water level, full-height retaining walls, maintenance bridges over every long water section and jumping enabled.")
