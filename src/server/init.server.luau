@@ -9,6 +9,16 @@ local Workspace = game:GetService("Workspace")
 local Players = game:GetService("Players")
 local StarterPack = game:GetService("StarterPack")
 
+-- The first Rojo template may leave its default Baseplate in an existing Studio place.
+-- It would cover the sewer because the old blockout used negative Y coordinates.
+local oldBaseplate = Workspace:FindFirstChild("Baseplate")
+if oldBaseplate and oldBaseplate:IsA("BasePart") then
+    oldBaseplate:Destroy()
+end
+
+-- Raise every generated part as one consistent level so the sewer sits at ground level.
+local WORLD_Y_OFFSET = 10.5
+
 local previous = Workspace:FindFirstChild("SewerWorld")
 if previous then previous:Destroy() end
 local oldClinic = Workspace:FindFirstChild("HorrorWorld")
@@ -22,7 +32,7 @@ local function makePart(name, size, cframe, material, color, parent, transparenc
     local item = Instance.new("Part")
     item.Name = name
     item.Size = size
-    item.CFrame = cframe
+    item.CFrame = CFrame.new(0, WORLD_Y_OFFSET, 0) * cframe
     item.Anchored = true
     item.CanCollide = true
     item.CanTouch = true
@@ -63,16 +73,16 @@ local function makeModel(name, parent)
 end
 
 local function configureLighting()
-    Lighting.ClockTime = 0.2
-    Lighting.Brightness = 2.1
+    Lighting.ClockTime = 0.35
+    Lighting.Brightness = 2.6
     Lighting.GlobalShadows = true
-    Lighting.Ambient = Color3.fromRGB(83, 91, 85)
-    Lighting.OutdoorAmbient = Color3.fromRGB(56, 64, 59)
-    Lighting.FogColor = Color3.fromRGB(56, 68, 63)
-    Lighting.FogStart = 95
-    Lighting.FogEnd = 330
-    Lighting.EnvironmentDiffuseScale = 0.45
-    Lighting.EnvironmentSpecularScale = 0.3
+    Lighting.Ambient = Color3.fromRGB(101, 105, 100)
+    Lighting.OutdoorAmbient = Color3.fromRGB(76, 82, 77)
+    Lighting.FogColor = Color3.fromRGB(68, 76, 72)
+    Lighting.FogStart = 135
+    Lighting.FogEnd = 480
+    Lighting.EnvironmentDiffuseScale = 0.5
+    Lighting.EnvironmentSpecularScale = 0.32
 
     for _, name in ipairs({"SewerAtmosphere", "SewerColor", "SewerBloom"}) do
         local old = Lighting:FindFirstChild(name)
@@ -81,20 +91,20 @@ local function configureLighting()
 
     local atmosphere = Instance.new("Atmosphere")
     atmosphere.Name = "SewerAtmosphere"
-    atmosphere.Density = 0.17
-    atmosphere.Offset = 0.05
-    atmosphere.Color = Color3.fromRGB(151, 164, 154)
-    atmosphere.Decay = Color3.fromRGB(55, 67, 61)
-    atmosphere.Glare = 0.02
-    atmosphere.Haze = 0.8
+    atmosphere.Density = 0.11
+    atmosphere.Offset = 0.04
+    atmosphere.Color = Color3.fromRGB(164, 170, 163)
+    atmosphere.Decay = Color3.fromRGB(65, 72, 68)
+    atmosphere.Glare = 0.01
+    atmosphere.Haze = 0.35
     atmosphere.Parent = Lighting
 
     local color = Instance.new("ColorCorrectionEffect")
     color.Name = "SewerColor"
-    color.Brightness = 0.015
-    color.Contrast = 0.08
-    color.Saturation = -0.16
-    color.TintColor = Color3.fromRGB(218, 226, 215)
+    color.Brightness = 0.025
+    color.Contrast = 0.09
+    color.Saturation = -0.08
+    color.TintColor = Color3.fromRGB(229, 231, 220)
     color.Parent = Lighting
 
     local bloom = Instance.new("BloomEffect")
@@ -105,12 +115,12 @@ local function configureLighting()
     bloom.Parent = Lighting
 end
 
-local concrete = Color3.fromRGB(88, 93, 87)
-local concreteDark = Color3.fromRGB(57, 64, 59)
-local concreteEdge = Color3.fromRGB(105, 108, 98)
-local metal = Color3.fromRGB(61, 70, 66)
-local rust = Color3.fromRGB(105, 66, 48)
-local yellow = Color3.fromRGB(194, 157, 67)
+local concrete = Color3.fromRGB(101, 103, 98)
+local concreteDark = Color3.fromRGB(63, 68, 65)
+local concreteEdge = Color3.fromRGB(98, 101, 95)
+local metal = Color3.fromRGB(54, 61, 59)
+local rust = Color3.fromRGB(73, 51, 42)
+local yellow = Color3.fromRGB(176, 140, 61)
 
 -- Creates a barrel-vault roof. The long dimension follows the tunnel axis;
 -- each angled section overlaps its neighbours to form a continuous arch.
@@ -143,12 +153,12 @@ local function buildArchRibs(axis, centerX, centerZ, centerY, radius, positions,
                 x = along
                 z = centerZ + radius * math.sin(angle)
                 local cf = CFrame.new(x, y, z) * CFrame.Angles(angle, 0, 0)
-                makePart(name .. "_Steel_Rib", Vector3.new(0.85, 0.7, 2.75), cf, Enum.Material.Metal, rust, parent)
+                makePart(name .. "_Steel_Rib", Vector3.new(0.72, 0.62, 2.82), cf, Enum.Material.Metal, Color3.fromRGB(48, 55, 52), parent)
             else
                 z = along
                 x = centerX + radius * math.sin(angle)
                 local cf = CFrame.new(x, y, z) * CFrame.Angles(0, 0, -angle)
-                makePart(name .. "_Steel_Rib", Vector3.new(2.75, 0.7, 0.85), cf, Enum.Material.Metal, rust, parent)
+                makePart(name .. "_Steel_Rib", Vector3.new(2.82, 0.62, 0.72), cf, Enum.Material.Metal, Color3.fromRGB(48, 55, 52), parent)
             end
         end
     end
@@ -388,12 +398,12 @@ createFlashlightInventoryItem()
 local spawn = Instance.new("SpawnLocation")
 spawn.Name = "SewerSpawn"
 spawn.Size = Vector3.new(4, 0.4, 4)
-spawn.Position = Vector3.new(-108, -9.58, 0)
-spawn.CFrame = CFrame.new(-108, -9.58, 0) * CFrame.Angles(0, math.rad(-90), 0)
+spawn.Position = Vector3.new(-108, -9.58 + WORLD_Y_OFFSET, 0)
+spawn.CFrame = CFrame.new(-108, -9.58 + WORLD_Y_OFFSET, 0) * CFrame.Angles(0, math.rad(-90), 0)
 spawn.Anchored = true
 spawn.Neutral = true
 spawn.Transparency = 1
 spawn.CanCollide = false
 spawn.Parent = world
 
-print("[Horror Game] Sewer V2 loaded: enclosed arched tunnel, connected pump-room branch, lights and flashlight inventory.")
+print("[Horror Game] Sewer V3 loaded at ground level: enclosed arched tunnel, connected pump-room branch, revised lighting and flashlight inventory.")
