@@ -911,14 +911,16 @@ buildEntrance()
 -- The earlier script removed the template spawn and failed before creating this one.
 local spawn = Instance.new("SpawnLocation")
 spawn.Name = "SewerSpawn"
-spawn.Size = Vector3.new(8, 1, 4)
+-- Rotated so the character faces down the main tunnel (+X); dimensions are
+-- swapped to keep the pad inside the five-stud-wide dry walkway.
+spawn.Size = Vector3.new(4, 1, 8)
 spawn.Position = Vector3.new(-88, 0, 6.5)
-spawn.CFrame = CFrame.new(-88, 0, 6.5)
+spawn.CFrame = CFrame.new(-88, 0, 6.5) * CFrame.Angles(0, math.rad(-90), 0)
 spawn.Anchored = true
 spawn.Neutral = true
 spawn.Duration = 0
 spawn.Transparency = 1
-spawn.CanCollide = true
+spawn.CanCollide = false
 spawn.CanTouch = true
 spawn.CanQuery = true
 spawn.Parent = world
