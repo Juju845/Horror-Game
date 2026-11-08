@@ -1,6 +1,7 @@
 --[[
-    HORROR GAME - FIRST-PERSON CONTROLS
-    A visible first-person flashlight starts on and toggles with F.
+    HORROR GAME - FIRST PERSON AND FLASHLIGHT INVENTORY
+    The flashlight is a real Backpack Tool. Press 1 or G to equip/stow it.
+    Press F (or click while equipped) to switch the beam on/off.
 ]]
 
 local Players = game:GetService("Players")
@@ -11,13 +12,18 @@ local Workspace = game:GetService("Workspace")
 
 local player = Players.LocalPlayer
 local playerGui = player:WaitForChild("PlayerGui")
+local backpack = player:WaitForChild("Backpack")
 
 player.CameraMode = Enum.CameraMode.LockFirstPerson
 player.CameraMinZoomDistance = 0.5
 player.CameraMaxZoomDistance = 0.5
 UserInputService.MouseIconEnabled = false
 
--- Clean up a previous copy if Studio restarts the LocalScript.
+pcall(function()
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Backpack, true)
+    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, true)
+end)
+
 local oldGui = playerGui:FindFirstChild("HorrorHUD")
 if oldGui then oldGui:Destroy() end
 
@@ -33,41 +39,41 @@ dot.Name = "CenterDot"
 dot.AnchorPoint = Vector2.new(0.5, 0.5)
 dot.Position = UDim2.fromScale(0.5, 0.5)
 dot.Size = UDim2.fromOffset(4, 4)
-dot.BackgroundColor3 = Color3.fromRGB(235, 240, 232)
-dot.BackgroundTransparency = 0.04
+dot.BackgroundColor3 = Color3.fromRGB(239, 244, 231)
+dot.BackgroundTransparency = 0.02
 dot.BorderSizePixel = 0
 dot.Parent = gui
+local dotRound = Instance.new("UICorner")
+dotRound.CornerRadius = UDim.new(1, 0)
+dotRound.Parent = dot
+local dotStroke = Instance.new("UIStroke")
+dotStroke.Color = Color3.fromRGB(16, 21, 18)
+dotStroke.Thickness = 1
+dotStroke.Parent = dot
 
-local round = Instance.new("UICorner")
-round.CornerRadius = UDim.new(1, 0)
-round.Parent = dot
+local status = Instance.new("TextLabel")
+status.Name = "FlashlightStatus"
+status.AnchorPoint = Vector2.new(0, 1)
+status.Position = UDim2.new(0, 24, 1, -22)
+status.Size = UDim2.fromOffset(360, 25)
+status.BackgroundTransparency = 1
+status.Text = "TASCHENLAMPE WIRD GELADEN ..."
+status.TextColor3 = Color3.fromRGB(218, 227, 214)
+status.TextSize = 13
+status.Font = Enum.Font.GothamMedium
+status.TextXAlignment = Enum.TextXAlignment.Left
+status.Parent = gui
 
-local outline = Instance.new("UIStroke")
-outline.Color = Color3.fromRGB(19, 24, 22)
-outline.Thickness = 1
-outline.Parent = dot
+local flashlightTool
+local equipped = false
+local lightOn = true
+local viewModel
+local spotLight
+local fillLight
+local lens
+local boundTools = {}
 
-local hint = Instance.new("TextLabel")
-hint.Name = "FlashlightHint"
-hint.AnchorPoint = Vector2.new(0, 1)
-hint.Position = UDim2.new(0, 25, 1, -24)
-hint.Size = UDim2.fromOffset(220, 25)
-hint.BackgroundTransparency = 1
-hint.Text = "F   TASCHENLAMPE  •  AN"
-hint.TextColor3 = Color3.fromRGB(210, 220, 211)
-hint.TextTransparency = 0.08
-hint.TextSize = 14
-hint.Font = Enum.Font.GothamMedium
-hint.TextXAlignment = Enum.TextXAlignment.Left
-hint.Parent = gui
-
-local flashlightOn = true
-local flashlightModel
-local flashlightLight
-local flashlightLens
-local attachedCamera
-
-local function makeViewPart(name, size, color, material)
+local function makeViewPart(parent, name, size, color, material)
     local item = Instance.new("Part")
     item.Name = name
     item.Size = size
@@ -79,66 +85,132 @@ local function makeViewPart(name, size, color, material)
     item.Massless = true
     item.Material = material
     item.Color = color
-    item.Parent = flashlightModel
+    item.Parent = parent
     return item
 end
 
-local function attachFlashlight(camera)
-    if flashlightModel then
-        flashlightModel:Destroy()
-        flashlightModel = nil
+local function destroyViewModel()
+    if viewModel then
+        viewModel:Destroy()
+        viewModel = nil
     end
+    spotLight = nil
+    fillLight = nil
+    lens = nil
+end
 
+local function createViewModel()
+    destroyViewModel()
+    if not equipped then return end
+    local camera = Workspace.CurrentCamera
     if not camera then return end
 
-    flashlightModel = Instance.new("Model")
-    flashlightModel.Name = "FirstPersonFlashlight"
-    flashlightModel.Parent = camera
-    attachedCamera = camera
+    viewModel = Instance.new("Model")
+    viewModel.Name = "EquippedFlashlightViewModel"
+    viewModel.Parent = camera
 
-    local body = makeViewPart("Flashlight_Body", Vector3.new(0.22, 0.22, 0.62), Color3.fromRGB(32, 38, 35), Enum.Material.Metal)
-    local grip = makeViewPart("Flashlight_Grip", Vector3.new(0.19, 0.27, 0.28), Color3.fromRGB(21, 25, 23), Enum.Material.Rubber)
-    local head = makeViewPart("Flashlight_Head", Vector3.new(0.31, 0.31, 0.18), Color3.fromRGB(58, 64, 59), Enum.Material.Metal)
-    flashlightLens = makeViewPart("Flashlight_Lens", Vector3.new(0.22, 0.22, 0.025), Color3.fromRGB(225, 235, 207), Enum.Material.Neon)
+    local body = makeViewPart(viewModel, "Flashlight_Body", Vector3.new(0.25, 0.25, 0.66), Color3.fromRGB(32, 38, 35), Enum.Material.Metal)
+    local grip = makeViewPart(viewModel, "Flashlight_Grip", Vector3.new(0.20, 0.29, 0.3), Color3.fromRGB(20, 24, 22), Enum.Material.Rubber)
+    local head = makeViewPart(viewModel, "Flashlight_Head", Vector3.new(0.35, 0.35, 0.2), Color3.fromRGB(73, 80, 72), Enum.Material.Metal)
+    lens = makeViewPart(viewModel, "Flashlight_Lens", Vector3.new(0.245, 0.245, 0.035), Color3.fromRGB(238, 245, 218), Enum.Material.Neon)
 
-    flashlightLight = Instance.new("SpotLight")
-    flashlightLight.Name = "Flashlight_Beam"
-    flashlightLight.Face = Enum.NormalId.Front
-    flashlightLight.Angle = 58
-    flashlightLight.Brightness = 4.2
-    flashlightLight.Range = 58
-    flashlightLight.Shadows = true
-    flashlightLight.Color = Color3.fromRGB(225, 235, 213)
-    flashlightLight.Enabled = flashlightOn
-    flashlightLight.Parent = flashlightLens
+    local beamAttachment = Instance.new("Attachment")
+    beamAttachment.Name = "BeamDirection"
+    beamAttachment.Parent = lens
 
-    -- Parts are positioned every frame relative to the camera, so the beam
-    -- follows the exact direction the player is looking.
-    local function update()
-        if not camera or not flashlightModel or flashlightModel.Parent ~= camera then return end
-        local base = camera.CFrame * CFrame.new(0.43, -0.36, -0.88) * CFrame.Angles(math.rad(-5), math.rad(-7), math.rad(-8))
-        body.CFrame = base
-        grip.CFrame = base * CFrame.new(0, -0.12, 0.12)
-        head.CFrame = base * CFrame.new(0, 0, -0.32)
-        flashlightLens.CFrame = base * CFrame.new(0, 0, -0.415)
-    end
+    spotLight = Instance.new("SpotLight")
+    spotLight.Name = "Flashlight_Main_Beam"
+    spotLight.Angle = 78
+    spotLight.Brightness = 9
+    spotLight.Range = 95
+    spotLight.Shadows = false
+    spotLight.Color = Color3.fromRGB(244, 247, 225)
+    spotLight.Enabled = lightOn
+    spotLight.Parent = beamAttachment
 
-    update()
+    -- A soft nearby fill prevents the beam from looking weak when aiming down
+    -- at the floor or close objects. The SpotLight still provides the main beam.
+    fillLight = Instance.new("PointLight")
+    fillLight.Name = "Flashlight_Near_Fill"
+    fillLight.Brightness = 1.65
+    fillLight.Range = 24
+    fillLight.Shadows = false
+    fillLight.Color = Color3.fromRGB(232, 238, 215)
+    fillLight.Enabled = lightOn
+    fillLight.Parent = beamAttachment
+
+    viewModel:SetAttribute("PartsReady", true)
+    viewModel.PrimaryPart = body
 end
 
-local function updateFlashlightState()
-    if flashlightLight then
-        flashlightLight.Enabled = flashlightOn
+local function updateLightState()
+    if spotLight then spotLight.Enabled = equipped and lightOn end
+    if fillLight then fillLight.Enabled = equipped and lightOn end
+    if lens then
+        lens.Material = (equipped and lightOn) and Enum.Material.Neon or Enum.Material.Glass
+        lens.Color = (equipped and lightOn) and Color3.fromRGB(238, 245, 218) or Color3.fromRGB(65, 70, 65)
     end
-    if flashlightLens then
-        flashlightLens.Material = flashlightOn and Enum.Material.Neon or Enum.Material.Glass
-        flashlightLens.Color = flashlightOn and Color3.fromRGB(225, 235, 207) or Color3.fromRGB(62, 68, 61)
+
+    if not flashlightTool then
+        status.Text = "TASCHENLAMPE NICHT GEFUNDEN"
+    elseif equipped then
+        status.Text = lightOn and "TASCHENLAMPE  •  F LICHT AUS  •  G WEGSTECKEN" or "TASCHENLAMPE  •  F LICHT AN  •  G WEGSTECKEN"
+    else
+        status.Text = "TASCHENLAMPE IM INVENTAR  •  G HERVORHOLEN"
     end
-    hint.Text = flashlightOn and "F   TASCHENLAMPE  •  AN" or "F   TASCHENLAMPE  •  AUS"
-    hint.TextColor3 = flashlightOn and Color3.fromRGB(210, 220, 211) or Color3.fromRGB(140, 148, 141)
 end
 
-local function configureCharacter(character)
+local function setEquipped(state)
+    equipped = state
+    if equipped then
+        lightOn = true
+        createViewModel()
+    else
+        lightOn = false
+        destroyViewModel()
+    end
+    updateLightState()
+end
+
+local function toggleBeam()
+    if not equipped then return end
+    lightOn = not lightOn
+    updateLightState()
+end
+
+local function bindTool(tool)
+    if not tool:IsA("Tool") or tool.Name ~= "Taschenlampe" or boundTools[tool] then return end
+    boundTools[tool] = true
+    flashlightTool = tool
+
+    tool.Equipped:Connect(function()
+        setEquipped(true)
+    end)
+    tool.Unequipped:Connect(function()
+        setEquipped(false)
+    end)
+    tool.Activated:Connect(toggleBeam)
+
+    updateLightState()
+end
+
+local function findTool()
+    local found = backpack:FindFirstChild("Taschenlampe")
+    if not found and player.Character then
+        found = player.Character:FindFirstChild("Taschenlampe")
+    end
+    if found then bindTool(found) end
+    return found
+end
+
+backpack.ChildAdded:Connect(bindTool)
+backpack.ChildRemoved:Connect(function(child)
+    if child == flashlightTool and child.Parent ~= player.Character then
+        updateLightState()
+    end
+end)
+
+local function setupCharacter(character)
     local humanoid = character:WaitForChild("Humanoid", 10)
     if humanoid then
         humanoid.WalkSpeed = 12
@@ -146,48 +218,73 @@ local function configureCharacter(character)
         humanoid.JumpPower = 36
         humanoid.AutoRotate = true
     end
+
+    character.ChildAdded:Connect(bindTool)
+    task.wait(0.5)
+    local tool = findTool()
+    if tool and tool.Parent == backpack and humanoid then
+        humanoid:EquipTool(tool)
+    end
 end
 
 if player.Character then
-    configureCharacter(player.Character)
+    task.spawn(setupCharacter, player.Character)
 end
-player.CharacterAdded:Connect(configureCharacter)
+player.CharacterAdded:Connect(setupCharacter)
 
 UserInputService.InputBegan:Connect(function(input, gameProcessed)
     if gameProcessed then return end
-    if input.KeyCode == Enum.KeyCode.F then
-        flashlightOn = not flashlightOn
-        updateFlashlightState()
-    end
-end)
 
-RunService:BindToRenderStep("HorrorFlashlightFollow", Enum.RenderPriority.Camera.Value + 1, function()
-    local camera = Workspace.CurrentCamera
-    if camera and camera ~= attachedCamera then
-        attachFlashlight(camera)
-        updateFlashlightState()
-    end
-    if flashlightModel and camera == attachedCamera then
-        local body = flashlightModel:FindFirstChild("Flashlight_Body")
-        local grip = flashlightModel:FindFirstChild("Flashlight_Grip")
-        local head = flashlightModel:FindFirstChild("Flashlight_Head")
-        if body and grip and head and flashlightLens then
-            local base = camera.CFrame * CFrame.new(0.43, -0.36, -0.88) * CFrame.Angles(math.rad(-5), math.rad(-7), math.rad(-8))
-            body.CFrame = base
-            grip.CFrame = base * CFrame.new(0, -0.12, 0.12)
-            head.CFrame = base * CFrame.new(0, 0, -0.32)
-            flashlightLens.CFrame = base * CFrame.new(0, 0, -0.415)
+    if input.KeyCode == Enum.KeyCode.F then
+        toggleBeam()
+    elseif input.KeyCode == Enum.KeyCode.G then
+        local character = player.Character
+        local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+        local tool = findTool()
+        if humanoid and tool then
+            if equipped then
+                humanoid:UnequipTools()
+            elseif tool.Parent == backpack then
+                humanoid:EquipTool(tool)
+            end
         end
     end
 end)
 
-if Workspace.CurrentCamera then
-    attachFlashlight(Workspace.CurrentCamera)
-end
-updateFlashlightState()
+RunService:BindToRenderStep("HorrorFlashlightViewModel", Enum.RenderPriority.Camera.Value + 1, function()
+    if not equipped or not viewModel then return end
 
-pcall(function()
-    StarterGui:SetCoreGuiEnabled(Enum.CoreGuiType.Health, true)
+    local camera = Workspace.CurrentCamera
+    if not camera then return end
+    if viewModel.Parent ~= camera then
+        viewModel.Parent = camera
+    end
+
+    local base = camera.CFrame
+        * CFrame.new(0.48, -0.34, -0.88)
+        * CFrame.Angles(math.rad(-4), math.rad(-7), math.rad(-9))
+
+    local body = viewModel:FindFirstChild("Flashlight_Body")
+    local grip = viewModel:FindFirstChild("Flashlight_Grip")
+    local head = viewModel:FindFirstChild("Flashlight_Head")
+    if body and grip and head and lens then
+        body.CFrame = base
+        grip.CFrame = base * CFrame.new(0, -0.13, 0.12)
+        head.CFrame = base * CFrame.new(0, 0, -0.34)
+        lens.CFrame = base * CFrame.new(0, 0, -0.445)
+    end
 end)
 
-print("[Horror Game] First-person controls and flashlight ready. Press F to toggle.")
+backpack.ChildAdded:Connect(function(child)
+    if child.Name == "Taschenlampe" then
+        task.defer(function()
+            bindTool(child)
+            updateLightState()
+        end)
+    end
+end)
+
+findTool()
+updateLightState()
+
+print("[Horror Game] Flashlight inventory ready: 1/G equip or stow, F toggles beam.")
