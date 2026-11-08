@@ -1,7 +1,8 @@
 --[[
-    HORROR GAME - SEWER LEVEL V14
-    A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
-    pump room, service details, ceiling lights with animated dirty water and no flashlight.
+    HORROR GAME - SEWER MAP V15
+    Complete architectural rebuild of the sewer map.
+    Preserves first-person movement, stamina (client), jumping and spawn intent.
+    No flashlight tool. No Roblox Lighting.Technology write (sandbox restricted).
 ]]
 
 local Lighting = game:GetService("Lighting")
@@ -10,297 +11,145 @@ local Players = game:GetService("Players")
 local StarterPack = game:GetService("StarterPack")
 local TweenService = game:GetService("TweenService")
 
--- The first Rojo template may leave its default Baseplate in an existing Studio place.
--- It would cover the sewer because the old blockout used negative Y coordinates.
-local oldBaseplate = Workspace:FindFirstChild("Baseplate")
-if oldBaseplate and oldBaseplate:IsA("BasePart") then
-    oldBaseplate:Destroy()
-end
-
--- Raise every generated part as one consistent level so the sewer sits at ground level.
 local WORLD_Y_OFFSET = 10.5
+local FLOOR_LOCAL_Y = -10.5
+local WATER_TOP = 0.30
+local WATER_DEPTH = 3.0
+local WATER_LOCAL_Y = WATER_TOP - WORLD_Y_OFFSET
 
--- Remove any leftover default/template spawn pads, including their large built-in star decals.
+local C = {
+    concrete = Color3.fromRGB(79, 91, 94),
+    concreteLight = Color3.fromRGB(105, 116, 116),
+    concreteDark = Color3.fromRGB(38, 49, 53),
+    concreteEdge = Color3.fromRGB(126, 134, 128),
+    steel = Color3.fromRGB(36, 48, 52),
+    steelMid = Color3.fromRGB(62, 78, 81),
+    steelBright = Color3.fromRGB(119, 137, 135),
+    rust = Color3.fromRGB(100, 61, 43),
+    rustDark = Color3.fromRGB(61, 43, 36),
+    teal = Color3.fromRGB(70, 190, 173),
+    tealDim = Color3.fromRGB(44, 103, 98),
+    amber = Color3.fromRGB(224, 165, 63),
+    amberDark = Color3.fromRGB(111, 73, 32),
+    red = Color3.fromRGB(191, 49, 39),
+    water = Color3.fromRGB(48, 53, 43),
+}
+
+-- Remove the former prototype and any default Roblox base/spawn plates.
+local baseplate = Workspace:FindFirstChild("Baseplate")
+if baseplate then baseplate:Destroy() end
 for _, item in ipairs(Workspace:GetDescendants()) do
-    if item:IsA("SpawnLocation") then
-        item:Destroy()
-    end
+    if item:IsA("SpawnLocation") then item:Destroy() end
 end
 
--- Remove any old flashlight inventory objects from earlier prototypes.
-local oldStarterFlashlight = StarterPack:FindFirstChild("Taschenlampe")
-if oldStarterFlashlight then oldStarterFlashlight:Destroy() end
+local oldWorld = Workspace:FindFirstChild("SewerWorld")
+if oldWorld then oldWorld:Destroy() end
+local oldClinic = Workspace:FindFirstChild("HorrorWorld")
+if oldClinic then oldClinic:Destroy() end
+
+local oldTool = StarterPack:FindFirstChild("Taschenlampe")
+if oldTool then oldTool:Destroy() end
 for _, player in ipairs(Players:GetPlayers()) do
     local backpack = player:FindFirstChildOfClass("Backpack")
-    local oldTool = backpack and backpack:FindFirstChild("Taschenlampe")
-    if oldTool then oldTool:Destroy() end
+    local tool = backpack and backpack:FindFirstChild("Taschenlampe")
+    if tool then tool:Destroy() end
     local characterTool = player.Character and player.Character:FindFirstChild("Taschenlampe")
     if characterTool then characterTool:Destroy() end
 end
-
-local previous = Workspace:FindFirstChild("SewerWorld")
-if previous then previous:Destroy() end
-local oldClinic = Workspace:FindFirstChild("HorrorWorld")
-if oldClinic then oldClinic:Destroy() end
 
 local world = Instance.new("Folder")
 world.Name = "SewerWorld"
 world.Parent = Workspace
 
-local function makePart(name, size, cframe, material, color, parent, transparency)
-    local item = Instance.new("Part")
-    item.Name = name
-    item.Size = size
-    item.CFrame = CFrame.new(0, WORLD_Y_OFFSET, 0) * cframe
-    item.Anchored = true
-    item.CanCollide = true
-    item.CanTouch = true
-    item.CanQuery = true
-    item.Material = material or Enum.Material.Concrete
-    item.Color = color or Color3.fromRGB(70, 74, 71)
-    item.TopSurface = Enum.SurfaceType.Smooth
-    item.BottomSurface = Enum.SurfaceType.Smooth
-    item.CastShadow = true
-    item.Transparency = transparency or 0
-    item.Parent = parent or world
-    return item
+local function makePart(name, size, cframe, material, color, parent, transparency, canCollide)
+    local p = Instance.new("Part")
+    p.Name = name
+    p.Size = size
+    p.CFrame = CFrame.new(0, WORLD_Y_OFFSET, 0) * cframe
+    p.Anchored = true
+    p.CanCollide = canCollide ~= false
+    p.CanTouch = canCollide ~= false
+    p.CanQuery = true
+    p.Material = material or Enum.Material.Concrete
+    p.Color = color or C.concrete
+    p.TopSurface = Enum.SurfaceType.Smooth
+    p.BottomSurface = Enum.SurfaceType.Smooth
+    p.CastShadow = true
+    p.Transparency = transparency or 0
+    p.Parent = parent or world
+    return p
 end
 
-local function part(name, size, position, material, color, parent, transparency)
-    return makePart(name, size, CFrame.new(position), material, color, parent, transparency)
+local function part(name, size, position, material, color, parent, transparency, canCollide)
+    return makePart(name, size, CFrame.new(position), material, color, parent, transparency, canCollide)
 end
 
-local function cylinder(name, length, diameter, position, material, color, parent, orientation)
-    local item = part(
+local function cylinder(name, length, diameter, position, material, color, parent, axis)
+    local rotation = CFrame.identity
+    if axis == "Z" then
+        rotation = CFrame.Angles(0, math.rad(90), 0)
+    elseif axis == "Y" then
+        rotation = CFrame.Angles(0, 0, math.rad(90))
+    end
+    local p = makePart(
         name,
         Vector3.new(length, diameter, diameter),
-        position,
+        CFrame.new(position) * rotation,
         material or Enum.Material.Metal,
-        color or Color3.fromRGB(55, 61, 59),
+        color or C.steel,
         parent
     )
-    item.Shape = Enum.PartType.Cylinder
-    item.Orientation = orientation or Vector3.new(0, 0, 0)
-    return item
+    p.Shape = Enum.PartType.Cylinder
+    return p
 end
 
-local function makeModel(name, parent)
-    local result = Instance.new("Model")
-    result.Name = name
-    result.Parent = parent or world
-    return result
+local function newModel(name, parent)
+    local m = Instance.new("Model")
+    m.Name = name
+    m.Parent = parent or world
+    return m
 end
 
--- Muddy current with moving surface streaks and quiet positional water ambience.
--- Uses Roblox Terrain Water instead of flat Parts. Terrain Water has built-in
--- animated waves and reflections, giving the channels a continuous natural surface.
-local function addFlowingWater(name, axis, center, length, width, parent, bankOpenings, bankRange)
-    local size = axis == "X"
-        and Vector3.new(length, 4, width)
-        or Vector3.new(width, 4, length)
-
-    -- Raise the dirty water close to the top of the retaining walls, while
-    -- leaving a small clearance under the crossing decks.
-    local waterTop = 0.38
-    local waterFrame = CFrame.new(center.X, waterTop - size.Y / 2, center.Z)
-
-    -- Clear and refill only the channel volume. Terrain access/editing can be
-    -- restricted by Studio sandbox capabilities, so keep a safe visual fallback.
-    local terrainWaterOk, terrainWaterError = pcall(function()
-        local terrain = Workspace.Terrain
-        terrain:FillBlock(waterFrame, size, Enum.Material.Air)
-        terrain:FillBlock(waterFrame, size, Enum.Material.Water)
-    end)
-
-    if not terrainWaterOk then
-        warn("[Horror Game] Terrain water unavailable; using a surface fallback: " .. tostring(terrainWaterError))
-        local fallbackSize = axis == "X"
-            and Vector3.new(length, 0.12, width)
-            or Vector3.new(width, 0.12, length)
-        local surface = part(
-            name .. "_Water_Surface_Fallback",
-            fallbackSize,
-            Vector3.new(center.X, -10.18, center.Z),
-            Enum.Material.Glass,
-            Color3.fromRGB(58, 62, 50),
-            parent,
-            0.18
-        )
-        surface.CanCollide = false
-        surface.CanTouch = false
-        surface.CanQuery = false
-        surface.Reflectance = 0.18
-    end
-
-    -- A few small oily surface traces drift slowly with the current. Native Terrain
-    -- Water supplies the waves; these subtle, low-profile flecks provide visible flow.
-    if length >= 32 then
-        local patchCount = math.clamp(math.floor(length / 75), 1, 4)
-        for index = 1, patchCount do
-            local fraction = (index - 1) / math.max(1, patchCount - 1)
-            local across = (((index * 5) % 7) / 7 - 0.5) * width * 0.42
-            local startAlong = -length * 0.42 + fraction * length * 0.18
-            local endAlong = math.min(length * 0.43, startAlong + 30 + (index % 2) * 14)
-            local patchSize = axis == "X"
-                and Vector3.new(1.3 + (index % 2) * 0.5, 0.035, 0.24 + (index % 2) * 0.08)
-                or Vector3.new(0.24 + (index % 2) * 0.08, 0.035, 1.3 + (index % 2) * 0.5)
-            local startPosition
-            local endPosition
-            if axis == "X" then
-                startPosition = Vector3.new(center.X + startAlong, -10.05, center.Z + across)
-                endPosition = Vector3.new(center.X + endAlong, -10.05, center.Z + across)
-            else
-                startPosition = Vector3.new(center.X + across, -10.05, center.Z + startAlong)
-                endPosition = Vector3.new(center.X + across, -10.05, center.Z + endAlong)
-            end
-
-            local patch = part(
-                name .. "_Drifting_Surface_Fleck",
-                patchSize,
-                startPosition,
-                Enum.Material.SmoothPlastic,
-                Color3.fromRGB(105, 101, 76),
-                parent,
-                0.58
-            )
-            patch.Shape = Enum.PartType.Ball
-            patch.CanCollide = false
-            patch.CanTouch = false
-            patch.CanQuery = false
-            patch.CastShadow = false
-
-            task.spawn(function()
-                while patch.Parent do
-                    local tween = TweenService:Create(
-                        patch,
-                        TweenInfo.new(7 + (index % 3) * 1.5, Enum.EasingStyle.Linear),
-                        {Position = endPosition}
-                    )
-                    tween:Play()
-                    local state = tween.Completed:Wait()
-                    if state ~= Enum.PlaybackState.Completed or not patch.Parent then
-                        break
-                    end
-                    patch.Position = startPosition
-                end
-            end)
-        end
-    end
-
-    -- At an elbow, shorten the concrete banks around the joining passage.
-    -- This keeps each stream open through the junction instead of making a curb wall.
-    if bankOpenings == false then
-        return
-    end
-
-    local axisCenter = axis == "X" and center.X or center.Z
-    local axisStart = axisCenter - length / 2
-    local axisEnd = axisCenter + length / 2
-    if bankRange then
-        axisStart = math.max(axisStart, bankRange[1])
-        axisEnd = math.min(axisEnd, bankRange[2])
-    end
-    if axisEnd <= axisStart then return end
-
-    local segments = {{axisStart, axisEnd}}
-    if bankOpenings then
-        for _, opening in ipairs(bankOpenings) do
-            local cutStart = opening[1] - opening[2] / 2
-            local cutEnd = opening[1] + opening[2] / 2
-            local nextSegments = {}
-            for _, segment in ipairs(segments) do
-                local segmentStart, segmentEnd = segment[1], segment[2]
-                if cutEnd <= segmentStart or cutStart >= segmentEnd then
-                    table.insert(nextSegments, segment)
-                else
-                    if cutStart > segmentStart then
-                        table.insert(nextSegments, {segmentStart, math.min(cutStart, segmentEnd)})
-                    end
-                    if cutEnd < segmentEnd then
-                        table.insert(nextSegments, {math.max(cutEnd, segmentStart), segmentEnd})
-                    end
-                end
-            end
-            segments = nextSegments
-        end
-    end
-
-    -- Concrete retaining walls extend from the recessed riverbed to above
-    -- the waterline. Crossings are cut out of these walls so bridges sit flush.
-    local wallY = -10.875
-    local wallHeight = 3.25
-    local wallThickness = 0.8
-    local wallColor = Color3.fromRGB(67, 72, 66)
-    local capColor = Color3.fromRGB(90, 94, 85)
-
-    for _, side in ipairs({-1, 1}) do
+local function segmentsWithoutGaps(first, last, gaps)
+    local segments = {{first, last}}
+    for _, gap in ipairs(gaps or {}) do
+        local cutA = gap[1] - gap[2] / 2
+        local cutB = gap[1] + gap[2] / 2
+        local nextSegments = {}
         for _, segment in ipairs(segments) do
-            local segmentLength = segment[2] - segment[1]
-            if segmentLength > 1 then
-                local positionAlong = (segment[1] + segment[2]) / 2
-                if axis == "X" then
-                    part(
-                        name .. "_Concrete_River_Wall",
-                        Vector3.new(segmentLength, wallHeight, wallThickness),
-                        Vector3.new(positionAlong, wallY, center.Z + side * 4.0),
-                        Enum.Material.Concrete,
-                        wallColor,
-                        parent
-                    )
-                    part(
-                        name .. "_River_Wall_Cap",
-                        Vector3.new(segmentLength, 0.16, 0.95),
-                        Vector3.new(positionAlong, -9.33, center.Z + side * 4.0),
-                        Enum.Material.Concrete,
-                        capColor,
-                        parent
-                    )
-                else
-                    part(
-                        name .. "_Concrete_River_Wall",
-                        Vector3.new(wallThickness, wallHeight, segmentLength),
-                        Vector3.new(center.X + side * 4.0, wallY, positionAlong),
-                        Enum.Material.Concrete,
-                        wallColor,
-                        parent
-                    )
-                    part(
-                        name .. "_River_Wall_Cap",
-                        Vector3.new(0.95, 0.16, segmentLength),
-                        Vector3.new(center.X + side * 4.0, -9.33, positionAlong),
-                        Enum.Material.Concrete,
-                        capColor,
-                        parent
-                    )
-                end
+            local a, b = segment[1], segment[2]
+            if cutB <= a or cutA >= b then
+                table.insert(nextSegments, segment)
+            else
+                if cutA > a then table.insert(nextSegments, {a, math.min(cutA, b)}) end
+                if cutB < b then table.insert(nextSegments, {math.max(cutB, a), b}) end
             end
         end
+        segments = nextSegments
     end
+    return segments
 end
 
 local function configureLighting()
     Lighting.ClockTime = 0.35
     Lighting.Brightness = 2.25
     Lighting.GlobalShadows = true
-    Lighting.Ambient = Color3.fromRGB(91, 102, 103)
-    Lighting.OutdoorAmbient = Color3.fromRGB(66, 77, 79)
-    Lighting.FogColor = Color3.fromRGB(66, 78, 80)
-    Lighting.FogStart = 175
-    Lighting.FogEnd = 620
-    Lighting.EnvironmentDiffuseScale = 0.56
-    Lighting.EnvironmentSpecularScale = 0.32
+    Lighting.Ambient = Color3.fromRGB(95, 108, 110)
+    Lighting.OutdoorAmbient = Color3.fromRGB(69, 82, 84)
+    Lighting.FogColor = Color3.fromRGB(54, 68, 72)
+    Lighting.FogStart = 185
+    Lighting.FogEnd = 650
+    Lighting.EnvironmentDiffuseScale = 0.55
+    Lighting.EnvironmentSpecularScale = 0.35
 
-    local waterSettingsOk, waterSettingsError = pcall(function()
+    pcall(function()
         local terrain = Workspace.Terrain
-            terrain.WaterColor = Color3.fromRGB(48, 52, 42)
-        terrain.WaterReflectance = 0.38
-        terrain.WaterTransparency = 0.11
-        terrain.WaterWaveSize = 0.3
-        terrain.WaterWaveSpeed = 8
+        terrain.WaterColor = C.water
+        terrain.WaterReflectance = 0.32
+        terrain.WaterTransparency = 0.12
+        terrain.WaterWaveSize = 0.24
+        terrain.WaterWaveSpeed = 9
     end)
-    if not waterSettingsOk then
-        warn("[Horror Game] Terrain water settings restricted; fallback water surfaces will be used: " .. tostring(waterSettingsError))
-    end
 
     for _, name in ipairs({"SewerAtmosphere", "SewerColor", "SewerBloom"}) do
         local old = Lighting:FindFirstChild(name)
@@ -309,1031 +158,722 @@ local function configureLighting()
 
     local atmosphere = Instance.new("Atmosphere")
     atmosphere.Name = "SewerAtmosphere"
-    atmosphere.Density = 0.06
-    atmosphere.Offset = 0.015
-    atmosphere.Color = Color3.fromRGB(172, 174, 163)
-    atmosphere.Decay = Color3.fromRGB(79, 83, 74)
+    atmosphere.Density = 0.055
+    atmosphere.Offset = 0.02
+    atmosphere.Color = Color3.fromRGB(164, 178, 174)
+    atmosphere.Decay = Color3.fromRGB(58, 71, 72)
     atmosphere.Glare = 0
     atmosphere.Haze = 0.16
     atmosphere.Parent = Lighting
 
-    local color = Instance.new("ColorCorrectionEffect")
-    color.Name = "SewerColor"
-    color.Brightness = 0.025
-    color.Contrast = 0.09
-    color.Saturation = -0.08
-    color.TintColor = Color3.fromRGB(207, 221, 218)
-    color.Parent = Lighting
+    local grade = Instance.new("ColorCorrectionEffect")
+    grade.Name = "SewerColor"
+    grade.Brightness = 0.025
+    grade.Contrast = 0.12
+    grade.Saturation = -0.09
+    grade.TintColor = Color3.fromRGB(205, 222, 218)
+    grade.Parent = Lighting
 
     local bloom = Instance.new("BloomEffect")
     bloom.Name = "SewerBloom"
-    bloom.Intensity = 0.1
-    bloom.Size = 16
-    bloom.Threshold = 1.6
+    bloom.Intensity = 0.13
+    bloom.Size = 18
+    bloom.Threshold = 1.55
     bloom.Parent = Lighting
 end
 
-local concrete = Color3.fromRGB(83, 91, 91)
-local concreteDark = Color3.fromRGB(43, 52, 54)
-local concreteEdge = Color3.fromRGB(116, 124, 117)
-local metal = Color3.fromRGB(39, 49, 51)
-local rust = Color3.fromRGB(91, 57, 43)
-local yellow = Color3.fromRGB(213, 165, 64)
+local function addWater(name, axis, centerX, centerZ, length, width, parent)
+    local size = axis == "X"
+        and Vector3.new(length, WATER_DEPTH, width)
+        or Vector3.new(width, WATER_DEPTH, length)
+    local center = Vector3.new(centerX, WATER_TOP - WATER_DEPTH / 2, centerZ)
 
--- Creates a barrel-vault roof. The long dimension follows the tunnel axis;
--- each angled section overlaps its neighbours to form a continuous arch.
-local function buildArch(axis, centerX, centerZ, centerY, radius, length, parent, name, material, color, thickness)
-    for degrees = -90, 90, 20 do
-        local angle = math.rad(degrees)
-        local x = centerX
-        local z = centerZ
-        local y = centerY + radius * math.cos(angle)
+    local ok, err = pcall(function()
+        local terrain = Workspace.Terrain
+        terrain:FillBlock(CFrame.new(center), size, Enum.Material.Water)
+    end)
+
+    if not ok then
+        warn("[Horror Game] Terrain water fallback for " .. name .. ": " .. tostring(err))
+        local fallbackSize = axis == "X"
+            and Vector3.new(length, 0.12, width)
+            or Vector3.new(width, 0.12, length)
+        local fallbackPosition = axis == "X"
+            and Vector3.new(centerX, WATER_LOCAL_Y, centerZ)
+            or Vector3.new(centerX, WATER_LOCAL_Y, centerZ)
+        local surface = part(name .. "_Water_Surface", fallbackSize, fallbackPosition, Enum.Material.Glass, C.water, parent, 0.16, false)
+        surface.Reflectance = 0.2
+    end
+
+    -- Tiny oily streaks drift above the water; native Terrain Water supplies waves.
+    local count = math.clamp(math.floor(length / 58), 2, 6)
+    for index = 1, count do
+        local fraction = (index - 1) / math.max(1, count - 1)
+        local across = (((index * 7) % 11) / 11 - 0.5) * width * 0.55
+        local startAlong = -length * 0.43 + fraction * length * 0.22
+        local finishAlong = math.min(length * 0.44, startAlong + 24 + (index % 3) * 7)
+        local initial, final, streakSize
         if axis == "X" then
-            z = centerZ + radius * math.sin(angle)
-            local cf = CFrame.new(x, y, z) * CFrame.Angles(angle, 0, 0)
-            makePart(name .. "_RoofSection", Vector3.new(length, thickness or 1.5, 2.9), cf, material, color, parent)
+            initial = Vector3.new(centerX + startAlong, WATER_LOCAL_Y + 0.06, centerZ + across)
+            final = Vector3.new(centerX + finishAlong, WATER_LOCAL_Y + 0.06, centerZ + across)
+            streakSize = Vector3.new(3.5 + index % 3, 0.025, 0.08 + (index % 2) * 0.04)
         else
-            x = centerX + radius * math.sin(angle)
-            local cf = CFrame.new(x, y, z) * CFrame.Angles(0, 0, -angle)
-            makePart(name .. "_RoofSection", Vector3.new(2.9, thickness or 1.5, length), cf, material, color, parent)
+            initial = Vector3.new(centerX + across, WATER_LOCAL_Y + 0.06, centerZ + startAlong)
+            final = Vector3.new(centerX + across, WATER_LOCAL_Y + 0.06, centerZ + finishAlong)
+            streakSize = Vector3.new(0.08 + (index % 2) * 0.04, 0.025, 3.5 + index % 3)
         end
-    end
-end
 
-local function buildArchRibs(axis, centerX, centerZ, centerY, radius, positions, parent, name)
-    for _, along in ipairs(positions) do
-        for degrees = -90, 90, 20 do
-            local angle = math.rad(degrees)
-            local x = centerX
-            local z = centerZ
-            local y = centerY + radius * math.cos(angle)
-            if axis == "X" then
-                x = along
-                z = centerZ + radius * math.sin(angle)
-                local cf = CFrame.new(x, y, z) * CFrame.Angles(angle, 0, 0)
-                makePart(name .. "_Steel_Rib", Vector3.new(0.72, 0.62, 2.82), cf, Enum.Material.Metal, Color3.fromRGB(48, 55, 52), parent)
-            else
-                z = along
-                x = centerX + radius * math.sin(angle)
-                local cf = CFrame.new(x, y, z) * CFrame.Angles(0, 0, -angle)
-                makePart(name .. "_Steel_Rib", Vector3.new(2.82, 0.62, 0.72), cf, Enum.Material.Metal, Color3.fromRGB(48, 55, 52), parent)
+        local fleck = part(name .. "_Oil_Fleck", streakSize, initial, Enum.Material.SmoothPlastic, Color3.fromRGB(103, 100, 76), parent, 0.62, false)
+        fleck.CastShadow = false
+        task.spawn(function()
+            while fleck.Parent do
+                local tween = TweenService:Create(
+                    fleck,
+                    TweenInfo.new(7 + (index % 3) * 1.4, Enum.EasingStyle.Linear),
+                    {Position = final}
+                )
+                tween:Play()
+                local state = tween.Completed:Wait()
+                if state ~= Enum.PlaybackState.Completed or not fleck.Parent then break end
+                fleck.Position = initial
             end
-        end
+        end)
     end
 end
 
-local function addCeilingLamp(position, parent, name, color, brightness, range)
-    local housing = part(
-        name .. "_Architectural_Housing",
-        Vector3.new(4.6, 0.42, 1.75),
-        position,
-        Enum.Material.Metal,
-        Color3.fromRGB(32, 41, 43),
-        parent
-    )
-
-    -- Twin recessed LED bars replace the old single glowing slab.
-    for _, offset in ipairs({-0.42, 0.42}) do
-        local lens = part(
-            name .. "_LED_Diffuser",
-            Vector3.new(3.9, 0.09, 0.22),
-            Vector3.new(position.X, position.Y - 0.24, position.Z + offset),
-            Enum.Material.Neon,
-            color,
-            parent
-        )
-        lens.CanCollide = false
-        lens.CastShadow = false
-
-        local surface = Instance.new("SurfaceLight")
-        surface.Name = name .. "_Soft_Downlight"
-        surface.Face = Enum.NormalId.Bottom
-        surface.Color = color
-        surface.Brightness = (brightness or 1.7) * 0.7
-        surface.Range = (range or 30) * 0.82
-        surface.Angle = 110
-        surface.Shadows = true
-        surface.Parent = lens
-    end
-
-    local fill = Instance.new("PointLight")
-    fill.Name = name .. "_Ambient_Fill"
-    fill.Color = color
-    fill.Brightness = 0.18
-    fill.Range = 12
-    fill.Shadows = false
-    fill.Parent = housing
-    return housing
-end
-
--- Builds a recessed channel floor: two dry walking ledges and a lowered
--- concrete riverbed. Axis X means the tunnel runs left/right; Z means forward.
-local function buildChannelFloor(name, axis, center, length, totalWidth, channelWidth, parent)
-    local walkWidth = (totalWidth - channelWidth) / 2
-    local offset = channelWidth / 2 + walkWidth / 2
-    local bedCenterY = center.Y - 2.25
+local function buildChannelFloor(name, axis, centerX, centerZ, length, totalWidth, channelWidth, parent)
+    local dryWidth = (totalWidth - channelWidth) / 2
+    local dryOffset = channelWidth / 2 + dryWidth / 2
+    local bedY = -12.5
 
     if axis == "X" then
-        part(
-            name .. "_Left_Walkway",
-            Vector3.new(length, 1, walkWidth),
-            Vector3.new(center.X, center.Y, center.Z - offset),
-            Enum.Material.Concrete,
-            concrete,
-            parent
-        )
-        part(
-            name .. "_Right_Walkway",
-            Vector3.new(length, 1, walkWidth),
-            Vector3.new(center.X, center.Y, center.Z + offset),
-            Enum.Material.Concrete,
-            concrete,
-            parent
-        )
-        part(
-            name .. "_Lowered_Channel_Bed",
-            Vector3.new(length, 0.5, channelWidth),
-            Vector3.new(center.X, bedCenterY, center.Z),
-            Enum.Material.Slate,
-            concreteDark,
-            parent
-        )
+        part(name .. "_West_Walkway", Vector3.new(length, 1, dryWidth), Vector3.new(centerX, FLOOR_LOCAL_Y, centerZ - dryOffset), Enum.Material.Concrete, C.concrete, parent)
+        part(name .. "_East_Walkway", Vector3.new(length, 1, dryWidth), Vector3.new(centerX, FLOOR_LOCAL_Y, centerZ + dryOffset), Enum.Material.Concrete, C.concrete, parent)
+        part(name .. "_Recessed_Riverbed", Vector3.new(length, 1, channelWidth), Vector3.new(centerX, bedY, centerZ), Enum.Material.Slate, C.concreteDark, parent)
     else
-        part(
-            name .. "_Left_Walkway",
-            Vector3.new(walkWidth, 1, length),
-            Vector3.new(center.X - offset, center.Y, center.Z),
-            Enum.Material.Concrete,
-            concrete,
-            parent
-        )
-        part(
-            name .. "_Right_Walkway",
-            Vector3.new(walkWidth, 1, length),
-            Vector3.new(center.X + offset, center.Y, center.Z),
-            Enum.Material.Concrete,
-            concrete,
-            parent
-        )
-        part(
-            name .. "_Lowered_Channel_Bed",
-            Vector3.new(channelWidth, 0.5, length),
-            Vector3.new(center.X, bedCenterY, center.Z),
-            Enum.Material.Slate,
-            concreteDark,
-            parent
-        )
+        part(name .. "_West_Walkway", Vector3.new(dryWidth, 1, length), Vector3.new(centerX - dryOffset, FLOOR_LOCAL_Y, centerZ), Enum.Material.Concrete, C.concrete, parent)
+        part(name .. "_East_Walkway", Vector3.new(dryWidth, 1, length), Vector3.new(centerX + dryOffset, FLOOR_LOCAL_Y, centerZ), Enum.Material.Concrete, C.concrete, parent)
+        part(name .. "_Recessed_Riverbed", Vector3.new(channelWidth, 1, length), Vector3.new(centerX, bedY, centerZ), Enum.Material.Slate, C.concreteDark, parent)
     end
 end
 
--- A fixed maintenance footbridge spans the water channel. Its upper deck
--- is level with the dry walkways and its underside clears the raised waterline.
-local function addChannelBridge(name, axis, center, parent)
-    local deckSize = axis == "X"
-        and Vector3.new(6.2, 0.12, 8.8)
-        or Vector3.new(8.8, 0.12, 6.2)
+local function addRiverWallsX(name, first, last, centerZ, channelWidth, parent, crossings)
+    local gaps = {}
+    for _, x in ipairs(crossings or {}) do table.insert(gaps, {x, 8.4}) end
+    local segments = segmentsWithoutGaps(first, last, gaps)
+    for _, side in ipairs({-1, 1}) do
+        for _, segment in ipairs(segments) do
+            local len = segment[2] - segment[1]
+            local x = (segment[1] + segment[2]) / 2
+            part(name .. "_Concrete_River_Wall", Vector3.new(len, 2.3, 0.9), Vector3.new(x, -11.1, centerZ + side * (channelWidth / 2 + 0.42)), Enum.Material.Concrete, C.concreteDark, parent)
+            part(name .. "_Stone_Coping", Vector3.new(len, 0.18, 1.08), Vector3.new(x, -9.83, centerZ + side * (channelWidth / 2 + 0.42)), Enum.Material.Concrete, C.concreteLight, parent)
+        end
+    end
+end
 
-    local deck = part(
-        name .. "_Industrial_Grating_Deck",
-        deckSize,
-        Vector3.new(center.X, -10.0, center.Z),
-        Enum.Material.DiamondPlate,
-        Color3.fromRGB(57, 67, 68),
-        parent
-    )
-    deck.Reflectance = 0.12
+local function addRiverWallsZ(name, first, last, centerX, channelWidth, parent, crossings)
+    local gaps = {}
+    for _, z in ipairs(crossings or {}) do table.insert(gaps, {z, 8.4}) end
+    local segments = segmentsWithoutGaps(first, last, gaps)
+    for _, side in ipairs({-1, 1}) do
+        for _, segment in ipairs(segments) do
+            local len = segment[2] - segment[1]
+            local z = (segment[1] + segment[2]) / 2
+            part(name .. "_Concrete_River_Wall", Vector3.new(0.9, 2.3, len), Vector3.new(centerX + side * (channelWidth / 2 + 0.42), -11.1, z), Enum.Material.Concrete, C.concreteDark, parent)
+            part(name .. "_Stone_Coping", Vector3.new(1.08, 0.18, len), Vector3.new(centerX + side * (channelWidth / 2 + 0.42), -9.83, z), Enum.Material.Concrete, C.concreteLight, parent)
+        end
+    end
+end
 
-    -- Closely spaced steel ribs give the crossing a real industrial-grating look.
-    for index = 1, 13 do
-        local offset = (index - 7) * 0.47
+local function addBridge(name, axis, centerX, centerZ, parent)
+    local deckSize = axis == "X" and Vector3.new(8.0, 0.26, 12.2) or Vector3.new(12.2, 0.26, 8.0)
+    local deck = part(name .. "_Heavy_Steel_Grating", deckSize, Vector3.new(centerX, -10.0, centerZ), Enum.Material.DiamondPlate, C.steelMid, parent)
+    deck.Reflectance = 0.1
+
+    for index = 1, 19 do
+        local offset = (index - 10) * 0.38
         local ribSize, ribPosition
         if axis == "X" then
-            ribSize = Vector3.new(0.075, 0.045, 8.45)
-            ribPosition = Vector3.new(center.X + offset, -9.925, center.Z)
+            ribSize = Vector3.new(0.07, 0.045, 11.9)
+            ribPosition = Vector3.new(centerX + offset, -9.835, centerZ)
         else
-            ribSize = Vector3.new(8.45, 0.045, 0.075)
-            ribPosition = Vector3.new(center.X, -9.925, center.Z + offset)
+            ribSize = Vector3.new(11.9, 0.045, 0.07)
+            ribPosition = Vector3.new(centerX, -9.835, centerZ + offset)
         end
-        local rib = part(name .. "_Grating_Rib", ribSize, ribPosition, Enum.Material.Metal, Color3.fromRGB(128, 137, 130), parent)
-        rib.CanCollide = false
+        part(name .. "_Grating_Bar", ribSize, ribPosition, Enum.Material.Metal, C.steelBright, parent, 0, false)
     end
 
-    -- Two heavy cross-girders are visible below the deck.
-    for _, alongOffset in ipairs({-2.65, 2.65}) do
-        local girderSize, girderPosition
-        if axis == "X" then
-            girderSize = Vector3.new(0.24, 0.32, 8.45)
-            girderPosition = Vector3.new(center.X + alongOffset, -10.34, center.Z)
-        else
-            girderSize = Vector3.new(8.45, 0.32, 0.24)
-            girderPosition = Vector3.new(center.X, -10.34, center.Z + alongOffset)
-        end
-        part(name .. "_Under_Deck_Girder", girderSize, girderPosition, Enum.Material.Metal, metal, parent)
-    end
-
-    -- Side rails run along the direction of crossing, never across its entrances.
     for _, side in ipairs({-1, 1}) do
-        for _, alongOffset in ipairs({-3.35, 3.35}) do
+        for _, offset in ipairs({-3.35, 3.35}) do
             local postPosition
             if axis == "X" then
-                postPosition = Vector3.new(center.X + side * 2.7, -9.165, center.Z + alongOffset)
+                postPosition = Vector3.new(centerX + offset, -9.15, centerZ + side * 6.1)
             else
-                postPosition = Vector3.new(center.X + alongOffset, -9.165, center.Z + side * 2.7)
+                postPosition = Vector3.new(centerX + side * 6.1, -9.15, centerZ + offset)
             end
-            part(name .. "_Handrail_Post", Vector3.new(0.18, 1.55, 0.18), postPosition, Enum.Material.Metal, Color3.fromRGB(45, 55, 55), parent)
+            part(name .. "_Handrail_Post", Vector3.new(0.18, 1.55, 0.18), postPosition, Enum.Material.Metal, C.steel, parent)
         end
 
-        local upperSize, upperPosition, lowerSize, lowerPosition
+        local railSize, railPosition
         if axis == "X" then
-            upperSize = Vector3.new(0.16, 0.16, 7.2)
-            upperPosition = Vector3.new(center.X + side * 2.7, -8.38, center.Z)
-            lowerSize = Vector3.new(0.11, 0.11, 7.2)
-            lowerPosition = Vector3.new(center.X + side * 2.7, -9.15, center.Z)
+            railSize = Vector3.new(7.2, 0.16, 0.16)
+            railPosition = Vector3.new(centerX, -8.38, centerZ + side * 6.1)
         else
-            upperSize = Vector3.new(7.2, 0.16, 0.16)
-            upperPosition = Vector3.new(center.X, -8.38, center.Z + side * 2.7)
-            lowerSize = Vector3.new(7.2, 0.11, 0.11)
-            lowerPosition = Vector3.new(center.X, -9.15, center.Z + side * 2.7)
+            railSize = Vector3.new(0.16, 0.16, 7.2)
+            railPosition = Vector3.new(centerX + side * 6.1, -8.38, centerZ)
         end
-        part(name .. "_Upper_Handrail", upperSize, upperPosition, Enum.Material.Metal, Color3.fromRGB(91, 105, 101), parent)
-        part(name .. "_Lower_Handrail", lowerSize, lowerPosition, Enum.Material.Metal, Color3.fromRGB(58, 70, 67), parent)
+        part(name .. "_Upper_Handrail", railSize, railPosition, Enum.Material.Metal, C.steelBright, parent)
     end
 
-    -- Amber entry markers sit at the two dry-walkway edges.
     for _, side in ipairs({-1, 1}) do
-        local markerSize, markerPosition
+        local stripeSize, stripePosition
         if axis == "X" then
-            markerSize = Vector3.new(5.7, 0.08, 0.16)
-            markerPosition = Vector3.new(center.X, -9.91, center.Z + side * 4.12)
+            stripeSize = Vector3.new(6.8, 0.06, 0.16)
+            stripePosition = Vector3.new(centerX, -9.84, centerZ + side * 5.95)
         else
-            markerSize = Vector3.new(0.16, 0.08, 5.7)
-            markerPosition = Vector3.new(center.X + side * 4.12, -9.91, center.Z)
+            stripeSize = Vector3.new(0.16, 0.06, 6.8)
+            stripePosition = Vector3.new(centerX + side * 5.95, -9.84, centerZ)
         end
-        local marker = part(name .. "_Amber_Crossing_Marker", markerSize, markerPosition, Enum.Material.Neon, yellow, parent)
-        marker.CanCollide = false
-        marker.CastShadow = false
+        part(name .. "_Amber_Edge_Marker", stripeSize, stripePosition, Enum.Material.Neon, C.amber, parent, 0.08, false)
     end
 end
 
-local function addChannelBridges(name, axis, center, parent, positions)
-    for index, along in ipairs(positions) do
-        local bridgeCenter
-        if axis == "X" then
-            bridgeCenter = Vector3.new(along, center.Y, center.Z)
-        else
-            bridgeCenter = Vector3.new(center.X, center.Y, along)
-        end
-        addChannelBridge(name .. "_" .. index, axis, bridgeCenter, parent)
+local function addBridgesX(name, crossings, centerZ, parent)
+    for index, x in ipairs(crossings) do addBridge(name .. "_" .. index, "X", x, centerZ, parent) end
+end
+
+local function addBridgesZ(name, crossings, centerX, parent)
+    for index, z in ipairs(crossings) do addBridge(name .. "_" .. index, "Z", centerX, z, parent) end
+end
+
+local function buildArchX(name, first, last, centerZ, radius, parent, centerY)
+    centerY = centerY or -1.5
+    for degrees = -90, 90, 15 do
+        local angle = math.rad(degrees)
+        local y = centerY + radius * math.cos(angle)
+        local z = centerZ + radius * math.sin(angle)
+        local cf = CFrame.new((first + last) / 2, y, z) * CFrame.Angles(angle, 0, 0)
+        makePart(name .. "_Vault_Concrete_Segment", Vector3.new(last - first, 2.0, 4.55), cf, Enum.Material.Concrete, C.concreteDark, parent)
     end
 end
 
-local function buildMainTunnel()
-    local tunnel = makeModel("Main_Sewer_Tunnel")
+local function buildArchZ(name, first, last, centerX, radius, parent, centerY)
+    centerY = centerY or -1.5
+    for degrees = -90, 90, 15 do
+        local angle = math.rad(degrees)
+        local y = centerY + radius * math.cos(angle)
+        local x = centerX + radius * math.sin(angle)
+        local cf = CFrame.new(x, y, (first + last) / 2) * CFrame.Angles(0, 0, -angle)
+        makePart(name .. "_Vault_Concrete_Segment", Vector3.new(4.55, 2.0, last - first), cf, Enum.Material.Concrete, C.concreteDark, parent)
+    end
+end
 
-    -- Flat, continuous walking floor and tall side walls.
-    buildChannelFloor("Main", "X", Vector3.new(40, -10.5, 0), 320, 18, 8, tunnel)
-
-    -- Two gaps in the long side walls create real junctions for the branch tunnels.
-    part("Main_Left_Side_Wall_A", Vector3.new(60, 7, 1), Vector3.new(-90, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Left_Side_Wall_B", Vector3.new(240, 7, 1), Vector3.new(80, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Right_Wall_A", Vector3.new(145, 7, 1), Vector3.new(-47.5, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Right_Wall_B", Vector3.new(155, 7, 1), Vector3.new(122.5, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
-
-    -- Extended arched roof and repeating steel support frames.
-    buildArch("X", 40, 0, -3, 7.5, 320, tunnel, "Main", Enum.Material.Concrete, concreteDark, 1.55)
-    local ribPositions = {}
-    for x = -112, 192, 16 do
-        -- No full arch rib directly across either side-tunnel portal.
-        local atLeftPortal = x >= -64 and x <= -32
-        local atRightPortal = x >= 24 and x <= 48
-        if not atLeftPortal and not atRightPortal then
-            table.insert(ribPositions, x)
+local function addVaultRibsX(name, first, last, centerZ, radius, parent, skipGaps)
+    for x = first + 8, last - 8, 18 do
+        local skip = false
+        for _, gap in ipairs(skipGaps or {}) do
+            if math.abs(x - gap[1]) < gap[2] / 2 + 3 then skip = true break end
+        end
+        if not skip then
+            for degrees = -90, 90, 15 do
+                local angle = math.rad(degrees)
+                local cf = CFrame.new(x, -1.5 + radius * math.cos(angle), centerZ + radius * math.sin(angle)) * CFrame.Angles(angle, 0, 0)
+                makePart(name .. "_Heavy_Rib", Vector3.new(0.8, 0.7, 4.5), cf, Enum.Material.Metal, C.steel, parent)
+            end
         end
     end
-    buildArchRibs("X", 0, 0, -3, 7.02, ribPositions, tunnel, "Main")
+end
 
-    -- The main stream branches into the side corridors at both junctions.
-    addFlowingWater("Main_Channel", "X", Vector3.new(40, -9.94, 0), 312, 8, tunnel, {{-50, 18}, {35, 18}, {-96, 6.5}, {-10, 6.5}, {90, 6.5}, {160, 6.5}})
-    addChannelBridges("Main", "X", Vector3.new(40, -10.5, 0), tunnel, {-96, -10, 90, 160})
-    addFlowingWater("Main_Right_Junction", "Z", Vector3.new(35, -9.94, 4.5), 12, 8, tunnel, false)
-    addFlowingWater("Main_Left_Junction", "Z", Vector3.new(-50, -9.94, -4.5), 12, 8, tunnel, false)
-    addChannelBridges("Main_Right_Junction", "Z", Vector3.new(35, -10.5, 4.5), tunnel, {4.5})
-    addChannelBridges("Main_Left_Junction", "Z", Vector3.new(-50, -10.5, -4.5), tunnel, {-4.5})
+local function addVaultRibsZ(name, first, last, centerX, radius, parent)
+    for z = first + 8, last - 8, 18 do
+        for degrees = -90, 90, 15 do
+            local angle = math.rad(degrees)
+            local cf = CFrame.new(centerX + radius * math.sin(angle), -1.5 + radius * math.cos(angle), z) * CFrame.Angles(0, 0, -angle)
+            makePart(name .. "_Heavy_Rib", Vector3.new(4.5, 0.7, 0.8), cf, Enum.Material.Metal, C.steel, parent)
+        end
+    end
+end
 
-    -- Wall pipes are split at both side-tunnel portals, so pipes never cross an entrance.
+local function addWallRunX(name, first, last, centerZ, halfWidth, side, parent, gaps)
+    local z = centerZ + side * (halfWidth - 0.55)
+    for _, segment in ipairs(segmentsWithoutGaps(first, last, gaps)) do
+        local len = segment[2] - segment[1]
+        if len > 2 then
+            local x = (segment[1] + segment[2]) / 2
+            part(name .. "_Massive_Concrete_Wall", Vector3.new(len, 9, 1.1), Vector3.new(x, -6.0, z), Enum.Material.Concrete, C.concrete, parent)
+        end
+    end
+end
+
+local function addWallRunZ(name, first, last, centerX, halfWidth, side, parent)
+    local x = centerX + side * (halfWidth - 0.55)
+    part(name .. "_Massive_Concrete_Wall", Vector3.new(1.1, 9, last - first), Vector3.new(x, -6.0, (first + last) / 2), Enum.Material.Concrete, C.concrete, parent)
+end
+
+local function addEndWallX(name, x, zCenter, halfWidth, parent, gaps)
+    for _, segment in ipairs(segmentsWithoutGaps(zCenter - halfWidth, zCenter + halfWidth, gaps)) do
+        local len = segment[2] - segment[1]
+        if len > 2 then
+            part(name .. "_End_Wall", Vector3.new(1.2, 18, len), Vector3.new(x, -1.5, (segment[1] + segment[2]) / 2), Enum.Material.Concrete, C.concrete, parent)
+        end
+    end
+end
+
+local function addEndWallZ(name, z, xCenter, halfWidth, parent, gaps)
+    for _, segment in ipairs(segmentsWithoutGaps(xCenter - halfWidth, xCenter + halfWidth, gaps)) do
+        local len = segment[2] - segment[1]
+        if len > 2 then
+            part(name .. "_End_Wall", Vector3.new(len, 18, 1.2), Vector3.new((segment[1] + segment[2]) / 2, -1.5, z), Enum.Material.Concrete, C.concrete, parent)
+        end
+    end
+end
+
+local function addLamp(name, position, parent, brightness, range, tint)
+    local housing = part(name .. "_Recessed_Housing", Vector3.new(6.4, 0.55, 2.1), position, Enum.Material.Metal, C.steel, parent)
+    part(name .. "_LED_Diffuser_Left", Vector3.new(5.7, 0.1, 0.28), position + Vector3.new(0, -0.31, -0.48), Enum.Material.Neon, tint or Color3.fromRGB(200, 228, 218), parent, 0, false)
+    local rightLens = part(name .. "_LED_Diffuser_Right", Vector3.new(5.7, 0.1, 0.28), position + Vector3.new(0, -0.31, 0.48), Enum.Material.Neon, tint or Color3.fromRGB(200, 228, 218), parent, 0, false)
+    local light = Instance.new("SurfaceLight")
+    light.Name = name .. "_Wide_Downlight"
+    light.Face = Enum.NormalId.Bottom
+    light.Color = tint or Color3.fromRGB(200, 228, 218)
+    light.Brightness = brightness or 2.4
+    light.Range = range or 38
+    light.Angle = 120
+    light.Shadows = true
+    light.Parent = rightLens
+    local fill = Instance.new("PointLight")
+    fill.Name = name .. "_Soft_Fill"
+    fill.Color = light.Color
+    fill.Brightness = 0.28
+    fill.Range = 15
+    fill.Shadows = false
+    fill.Parent = housing
+end
+
+local function addWallPanelsX(name, first, last, centerZ, halfWidth, parent, gaps)
+    local wallZ = centerZ + (centerZ >= 0 and -1 or 1) * (halfWidth - 0.2)
+    -- Explicit wall side positions keep panels mounted on the inside faces.
     for _, side in ipairs({-1, 1}) do
-        local pipeZ = side * 6.75
-        local pipeRanges
-        if side == -1 then
-            pipeRanges = {{-90, 60}, {80, 240}}
-        else
-            pipeRanges = {{-47.5, 145}, {122.5, 155}}
-        end
-
-        for _, segment in ipairs(pipeRanges) do
-            local pipeCenter, pipeLength = segment[1], segment[2]
-            local mainPipe = cylinder("Main_Rusted_Service_Pipe", pipeLength, 0.66, Vector3.new(pipeCenter, -5.2, pipeZ), Enum.Material.CorrodedMetal, Color3.fromRGB(83, 57, 43), tunnel)
-            local upperPipe = cylinder("Main_Upper_Service_Pipe", pipeLength, 0.3, Vector3.new(pipeCenter, -3.6, side * 7.05), Enum.Material.Metal, metal, tunnel)
-            mainPipe.Reflectance = 0.12
-            upperPipe.Reflectance = 0.08
-        end
-
-        for x = -104, 184, 16 do
-            local inLeftPortal = side == -1 and x >= -60 and x <= -40
-            local inRightPortal = side == 1 and x >= 25 and x <= 45
-            if not inLeftPortal and not inRightPortal then
-                part("Main_Pipe_Anchor", Vector3.new(0.85, 1.45, 1.25), Vector3.new(x, -5.2, side * 7.25), Enum.Material.Metal, metal, tunnel)
-            end
-        end
-
-        -- Repeated bolted flange joints make the long pipe runs read as industrial pipework.
-        for x = -80, 160, 48 do
-            local flange = cylinder("Main_Pipe_Flange", 0.2, 0.93, Vector3.new(x, -5.2, pipeZ), Enum.Material.CorrodedMetal, Color3.fromRGB(72, 54, 43), tunnel)
-            flange.Reflectance = 0.1
-            for boltIndex = 0, 3 do
-                local angle = math.rad(boltIndex * 90)
-                local bolt = part(
-                    "Main_Flange_Bolt",
-                    Vector3.new(0.12, 0.12, 0.12),
-                    Vector3.new(x, -5.2 + math.sin(angle) * 0.39, pipeZ + math.cos(angle) * 0.39),
-                    Enum.Material.Metal,
-                    Color3.fromRGB(130, 128, 111),
-                    tunnel
-                )
-                bolt.Shape = Enum.PartType.Ball
-            end
-        end
-    end
-
-    -- Moisture lines and expansion joints break up the uninterrupted concrete wall faces.
-    for x = -104, 184, 24 do
-        for _, side in ipairs({-1, 1}) do
-            local seam = part(
-                "Wall_Expansion_Joint",
-                Vector3.new(0.12, 6.6, 0.045),
-                Vector3.new(x, -6.5, side * 7.47),
-                Enum.Material.Slate,
-                Color3.fromRGB(56, 61, 57),
-                tunnel
-            )
-            seam.CanCollide = false
-
-            if x % 48 == 8 then
-                local dampPatch = part(
-                    "Wall_Damp_Stain",
-                    Vector3.new(3.5, 1.7, 0.035),
-                    Vector3.new(x + 5, -8.0, side * 7.47),
-                    Enum.Material.Slate,
-                    Color3.fromRGB(64, 69, 53),
-                    tunnel,
-                    0.28
-                )
-                dampPatch.CanCollide = false
-            end
-        end
-    end
-
-    -- Cable tray under the roof, visibly attached with short hangers.
-    cylinder("Main_Ceiling_Cable_Tray", 298, 0.55, Vector3.new(40, 2.2, -3.5), Enum.Material.Metal, metal, tunnel)
-    for x = -102, 186, 24 do
-        part("Cable_Tray_Hanger", Vector3.new(0.5, 1.5, 0.55), Vector3.new(x, 2.95, -3.5), Enum.Material.Metal, rust, tunnel)
-    end
-
-    for x = -92, 188, 30 do
-        addCeilingLamp(Vector3.new(x, 3.05, 0), tunnel, "Main_Tunnel_Lamp", Color3.fromRGB(196, 211, 190), 2.25, 38)
-    end
-
-    -- Grounded floor drains and wall recesses make the long corridor readable.
-    for x = -100, 180, 25 do
-        local drain = part("Floor_Drain", Vector3.new(2.6, 0.08, 1.15), Vector3.new(x, -9.96, -5.4), Enum.Material.DiamondPlate, metal, tunnel)
-        drain.CanCollide = false
-        for line = 1, 5 do
-            part("Drain_Grille_Slot", Vector3.new(0.08, 0.035, 0.85), Vector3.new(x - 1.0 + line * 0.4, -9.90, -5.4), Enum.Material.Metal, Color3.fromRGB(31, 37, 34), tunnel)
-        end
-    end
-
-    -- Recessed service cabinets and wall seams are mounted flush to the concrete.
-    for x = -88, 176, 44 do
-        for _, side in ipairs({-1, 1}) do
-            local panelZ = side * 7.42
-            local cabinet = part(
-                "Wall_Service_Cabinet",
-                Vector3.new(3.2, 2.25, 0.22),
-                Vector3.new(x, -6.0, panelZ),
-                Enum.Material.DiamondPlate,
-                Color3.fromRGB(56, 64, 60),
-                tunnel
-            )
-            local stripe = part(
-                "Cabinet_Warning_Stripe",
-                Vector3.new(0.24, 1.45, 0.06),
-                Vector3.new(x + 1.12, -6.0, side * 7.28),
-                Enum.Material.Metal,
-                yellow,
-                tunnel
-            )
-            stripe.CanCollide = false
-
-            for boltX = -1, 1, 2 do
-                local bolt = part(
-                    "Cabinet_Fixing_Bolt",
-                    Vector3.new(0.12, 0.12, 0.08),
-                    Vector3.new(x + boltX * 1.32, -5.1, side * 7.28),
-                    Enum.Material.Metal,
-                    concreteEdge,
-                    tunnel
-                )
-                bolt.Shape = Enum.PartType.Ball
-                bolt.CanCollide = false
-            end
-        end
-    end
-
-    -- Seal both ends of the main tunnel. A real barred gate can replace these
-    -- caps later when the key/exit gameplay is ready.
-    part("Main_Entrance_End_Wall", Vector3.new(1, 14, 18), Vector3.new(-120.25, -3.5, 0), Enum.Material.Concrete, concreteDark, tunnel)
-    part("Main_End_Wall", Vector3.new(1, 14, 18), Vector3.new(200.25, -3.5, 0), Enum.Material.Concrete, concreteDark, tunnel)
-
-    -- The entrance portal is a thicker metal arch at the start of the tunnel.
-    buildArch("X", -117.5, 0, -3, 7.65, 1.6, tunnel, "Entrance_Portal", Enum.Material.Metal, rust, 0.85)
-    part("Entrance_Left_Pillar", Vector3.new(1.5, 7, 1.5), Vector3.new(-117.5, -6.5, -7.8), Enum.Material.Metal, rust, tunnel)
-    part("Entrance_Right_Pillar", Vector3.new(1.5, 7, 1.5), Vector3.new(-117.5, -6.5, 7.8), Enum.Material.Metal, rust, tunnel)
-
-    -- Direction signs are fixed directly against the concrete walls.
-    local sign = part("Main_Tunnel_Sign", Vector3.new(7, 3.2, 0.25), Vector3.new(-82, -3.1, -7.35), Enum.Material.Metal, concreteDark, tunnel)
-    local gui = Instance.new("SurfaceGui")
-    gui.Name = "TunnelSign"
-    gui.Face = Enum.NormalId.Front
-    gui.PixelsPerStud = 28
-    gui.Parent = sign
-    local label = Instance.new("TextLabel")
-    label.Size = UDim2.fromScale(1, 1)
-    label.BackgroundTransparency = 1
-    label.Text = "KANAL 04  /  OST"
-    label.TextColor3 = Color3.fromRGB(205, 210, 194)
-    label.TextScaled = true
-    label.Font = Enum.Font.GothamBold
-    label.Parent = gui
-end
-
-local function buildBranchAndPumpRoom()
-    local branch = makeModel("Pump_Room_Access")
-
-    -- Branch tunnel joins the opening in the main tunnel's right-hand wall.
-    buildChannelFloor("Branch", "Z", Vector3.new(35, -10.5, 60), 104, 18, 8, branch)
-    part("Branch_Left_Wall", Vector3.new(1, 7, 104), Vector3.new(26, -6.5, 60), Enum.Material.Concrete, concrete, branch)
-    part("Branch_Right_Wall", Vector3.new(1, 7, 104), Vector3.new(44, -6.5, 60), Enum.Material.Concrete, concrete, branch)
-    buildArch("Z", 35, 60, -3, 7.5, 104, branch, "Branch", Enum.Material.Concrete, concreteDark, 1.55)
-    local branchRibs = {}
-    for z = 16, 104, 16 do table.insert(branchRibs, z) end
-    buildArchRibs("Z", 35, 60, -3, 7.02, branchRibs, branch, "Branch")
-
-    addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 104, 8, branch, {{40, 6.5}, {80, 6.5}}, {14, 106})
-    addChannelBridges("Branch", "Z", Vector3.new(35, -10.5, 60), branch, {40, 80})
-
-    for _, x in ipairs({27.2, 42.8}) do
-        local branchPipe = cylinder("Branch_Rusted_Pipe", 96, 0.6, Vector3.new(x, -5.2, 60), Enum.Material.CorrodedMetal, Color3.fromRGB(83, 57, 43), branch, Vector3.new(0, 90, 0))
-        branchPipe.Reflectance = 0.1
-        for z = 18, 102, 18 do
-            part("Branch_Pipe_Bracket", Vector3.new(1.5, 1.25, 0.9), Vector3.new(x, -5.2, z), Enum.Material.Metal, metal, branch)
-        end
-    end
-
-    for z = 24, 84, 30 do
-        addCeilingLamp(Vector3.new(35, 3.05, z), branch, "Branch_Tunnel_Lamp", Color3.fromRGB(192, 207, 188), 2.0, 34)
-    end
-
-    -- A broad pump chamber sits at the end of the side tunnel.
-    local room = makeModel("Old_Pump_Room")
-    buildChannelFloor("Pump_Room", "Z", Vector3.new(35, -10.5, 134), 48, 50, 8, room)
-    part("Pump_Room_Ceiling", Vector3.new(50, 1.5, 48), Vector3.new(35, 4.15, 134), Enum.Material.Concrete, concreteDark, room)
-    part("Pump_Room_Left_Wall", Vector3.new(1, 14, 48), Vector3.new(10, -3.5, 134), Enum.Material.Concrete, concrete, room)
-    part("Pump_Room_Right_Wall", Vector3.new(1, 14, 48), Vector3.new(60, -3.5, 134), Enum.Material.Concrete, concrete, room)
-    -- Rear wall split around a doorway for the extended east drain passage.
-    part("Pump_Room_Back_Wall_Left", Vector3.new(16, 14, 1), Vector3.new(18, -3.5, 158), Enum.Material.Concrete, concrete, room)
-    part("Pump_Room_Back_Wall_Right", Vector3.new(16, 14, 1), Vector3.new(52, -3.5, 158), Enum.Material.Concrete, concrete, room)
-    part("Pump_Room_Back_Header", Vector3.new(14, 2, 1), Vector3.new(35, 2.5, 158), Enum.Material.Concrete, concreteDark, room)
-
-    -- Front wall is split around the connected branch entrance at z=110.
-    part("Pump_Entry_Left_Wall", Vector3.new(16, 14, 1), Vector3.new(18, -3.5, 110), Enum.Material.Concrete, concrete, room)
-    part("Pump_Entry_Right_Wall", Vector3.new(16, 14, 1), Vector3.new(52, -3.5, 110), Enum.Material.Concrete, concrete, room)
-    part("Pump_Entry_Header", Vector3.new(18, 2, 1), Vector3.new(35, 2.5, 110), Enum.Material.Concrete, concreteDark, room)
-
-    addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 8, room, {{132, 6.5}}, {114, 154})
-    addChannelBridges("Pump_Room", "Z", Vector3.new(35, -10.5, 134), room, {132})
-    part("Pump_Base", Vector3.new(13, 1.2, 10), Vector3.new(17.5, -9.35, 142), Enum.Material.Metal, rust, room)
-    local filterTank = cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(17.5, -4.1, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(68, 75, 68), room, Vector3.new(0, 0, 90))
-    filterTank.Reflectance = 0.12
-    part("Pump_Tank_Cap", Vector3.new(7.8, 0.45, 7.8), Vector3.new(17.5, 0.95, 142), Enum.Material.CorrodedMetal, rust, room)
-
-    -- Tank collars, inspection plate and rivets.
-    for _, y in ipairs({-7.2, -1.2}) do
-        local collar = cylinder("Pump_Tank_Collar", 0.28, 7.9, Vector3.new(17.5, y, 142), Enum.Material.Metal, Color3.fromRGB(75, 81, 73), room, Vector3.new(0, 0, 90))
-        collar.Reflectance = 0.12
-    end
-    part("Pump_Tank_Inspection_Plate", Vector3.new(0.3, 2.5, 2.2), Vector3.new(21.5, -4.1, 142), Enum.Material.DiamondPlate, metal, room)
-
-    -- Pump motor and coupling sit on a bolted steel plinth beside the filter tank.
-    part("Pump_Motor_Platform", Vector3.new(8.5, 0.75, 5.5), Vector3.new(47.2, -9.35, 142), Enum.Material.Metal, rust, room)
-    part("Pump_Motor_Housing", Vector3.new(5.5, 3.0, 3.8), Vector3.new(47.2, -7.45, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(58, 67, 61), room)
-    cylinder("Pump_Motor_Fan_End", 0.35, 3.2, Vector3.new(50.1, -7.45, 142), Enum.Material.Metal, metal, room)
-    cylinder("Pump_Motor_Coupling", 2.4, 1.3, Vector3.new(42.9, -7.1, 142), Enum.Material.Metal, rust, room)
-    for boltX = 43, 50, 2 do
-        local motorBolt = part("Pump_Motor_Fixing_Bolt", Vector3.new(0.16, 0.16, 0.16), Vector3.new(boltX, -8.9, 144.2), Enum.Material.Metal, Color3.fromRGB(143, 139, 121), room)
-        motorBolt.Shape = Enum.PartType.Ball
-    end
-
-    cylinder("Pump_Outlet_Pipe", 14, 0.8, Vector3.new(52, -2.5, 142), Enum.Material.CorrodedMetal, rust, room)
-    cylinder("Pump_Inlet_Pipe", 30, 0.72, Vector3.new(33, -2.5, 142), Enum.Material.Metal, metal, room)
-
-    -- Valve wheel and control panel are mounted close to the rear-right wall.
-    cylinder("Valve_Hub", 1.2, 2.6, Vector3.new(57.9, -4.1, 147), Enum.Material.Metal, rust, room, Vector3.new(0, 90, 0))
-    part("Valve_Wheel_Vertical", Vector3.new(0.35, 4.2, 0.35), Vector3.new(57.2, -4.1, 147), Enum.Material.Metal, yellow, room)
-    part("Valve_Wheel_Horizontal", Vector3.new(0.35, 0.35, 4.2), Vector3.new(57.2, -4.1, 147), Enum.Material.Metal, yellow, room)
-
-    -- A small pressure gauge and wall-mounted control cabinet give the pump a readable purpose.
-    part("Pump_Control_Cabinet", Vector3.new(0.55, 4.2, 5.5), Vector3.new(59.25, -5.2, 127), Enum.Material.DiamondPlate, Color3.fromRGB(48, 58, 54), room)
-    part("Pump_Cabinet_Display", Vector3.new(0.12, 1.1, 2.2), Vector3.new(58.92, -4.1, 127), Enum.Material.Neon, Color3.fromRGB(91, 140, 111), room).CanCollide = false
-    for index = 1, 3 do
-        local indicator = part("Pump_Status_Indicator", Vector3.new(0.13, 0.2, 0.2), Vector3.new(58.9, -5.0, 125.7 + index * 0.65), Enum.Material.Neon, index == 1 and Color3.fromRGB(178, 58, 43) or Color3.fromRGB(130, 151, 104), room)
-        indicator.CanCollide = false
-    end
-
-    local emergency = part("Pump_Red_Emergency_Lamp", Vector3.new(3.2, 0.25, 1.0), Vector3.new(35, 3.25, 128), Enum.Material.Neon, Color3.fromRGB(185, 56, 43), room)
-    emergency.CanCollide = false
-    local red = Instance.new("PointLight")
-    red.Color = Color3.fromRGB(255, 77, 59)
-    red.Brightness = 1.1
-    red.Range = 24
-    red.Parent = emergency
-
-    addCeilingLamp(Vector3.new(20, 3.35, 132), room, "Pump_Room_Lamp", Color3.fromRGB(185, 203, 187), 2.1, 34)
-    addCeilingLamp(Vector3.new(49, 3.35, 145), room, "Pump_Room_Lamp", Color3.fromRGB(185, 203, 187), 1.8, 30)
-end
-
-local function buildSecurityGate()
-    local gate = makeModel("Restricted_Tunnel_Gate")
-    local x = 181
-    part("Gate_Post_Left", Vector3.new(1, 12, 1), Vector3.new(x, -4.5, -7.5), Enum.Material.Metal, rust, gate)
-    part("Gate_Post_Right", Vector3.new(1, 12, 1), Vector3.new(x, -4.5, 7.5), Enum.Material.Metal, rust, gate)
-    part("Gate_Header", Vector3.new(1, 1, 16), Vector3.new(x, 1, 0), Enum.Material.Metal, rust, gate)
-    for z = -6.5, 6.5, 1.45 do
-        part("Gate_Vertical_Bar", Vector3.new(0.45, 10.5, 0.45), Vector3.new(x, -4.6, z), Enum.Material.Metal, metal, gate)
-    end
-    part("Gate_Warning_Plate", Vector3.new(0.35, 2.6, 8), Vector3.new(x - 0.3, -2.3, 0), Enum.Material.Metal, Color3.fromRGB(82, 47, 38), gate)
-
-    local alarm = part("Gate_Alarm_Light", Vector3.new(0.55, 0.55, 0.55), Vector3.new(x - 0.8, 0.1, -6.4), Enum.Material.Neon, Color3.fromRGB(200, 48, 39), gate)
-    alarm.CanCollide = false
-    local red = Instance.new("PointLight")
-    red.Color = Color3.fromRGB(255, 57, 45)
-    red.Brightness = 0.9
-    red.Range = 15
-    red.Parent = alarm
-end
-
-local function buildWestServiceRoute()
-    local route = makeModel("West_Service_Route")
-
-    -- From the left-hand junction, the passage runs north and makes a clear 90-degree turn west.
-    buildChannelFloor("West_Leg", "Z", Vector3.new(-50, -10.5, -62), 108, 18, 8, route)
-    -- Stop the vertical side walls before the elbow so they do not block the 90-degree turn.
-    part("West_Leg_Left_Wall", Vector3.new(1, 7, 90), Vector3.new(-59, -6.5, -53), Enum.Material.Concrete, concrete, route)
-    part("West_Leg_Right_Wall", Vector3.new(1, 7, 90), Vector3.new(-41, -6.5, -53), Enum.Material.Concrete, concrete, route)
-    buildArch("Z", -50, -62, -3, 7.5, 108, route, "West_Leg", Enum.Material.Concrete, concreteDark, 1.55)
-    local ribs = {}
-    for z = -108, -16, 16 do
-        -- Leave the final elbow bay free of a cross-frame.
-        if z > -100 then table.insert(ribs, z) end
-    end
-    buildArchRibs("Z", -50, -62, -3, 7.02, ribs, route, "West_Leg")
-    addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 8, route, {{-32, 6.5}, {-72, 6.5}}, {-98, -8})
-    addChannelBridges("West_Leg", "Z", Vector3.new(-50, -10.5, -62), route, {-32, -72})
-    for z = -96, -24, 30 do
-        addCeilingLamp(Vector3.new(-50, 3.05, z), route, "West_Leg_Lamp", Color3.fromRGB(193, 208, 188), 1.9, 32)
-    end
-    cylinder("West_Leg_Service_Pipe", 90, 0.62, Vector3.new(-58, -5.2, -53), Enum.Material.CorrodedMetal, rust, route, Vector3.new(0, 90, 0))
-    cylinder("West_Leg_Service_Pipe", 90, 0.62, Vector3.new(-42, -5.2, -53), Enum.Material.CorrodedMetal, rust, route, Vector3.new(0, 90, 0))
-
-    -- The bend is a full-width elbow: this tunnel heads west after the northbound run.
-    buildChannelFloor("West_Turn", "X", Vector3.new(-100, -10.5, -108), 120, 18, 8, route)
-    -- Keep the north wall open across x=-60..-40 for the incoming west leg.
-    part("West_Turn_North_Wall_Left", Vector3.new(100, 7, 1), Vector3.new(-110, -6.5, -99), Enum.Material.Concrete, concrete, route)
-    part("West_Turn_South_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -117), Enum.Material.Concrete, concrete, route)
-    -- The outer east edge of the elbow joins the short side wall of the approach.
-    part("West_Turn_East_Side_Wall", Vector3.new(1, 7, 19), Vector3.new(-40, -6.5, -107.5), Enum.Material.Concrete, concrete, route)
-    buildArch("X", -100, -108, -3, 7.5, 120, route, "West_Turn", Enum.Material.Concrete, concreteDark, 1.55)
-    local turnRibs = {}
-    for x = -152, -48, 16 do
-        if x < -64 or x > -40 then table.insert(turnRibs, x) end
-    end
-    buildArchRibs("X", -100, -108, -3, 7.02, turnRibs, route, "West_Turn")
-    addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 8, route, {{-50, 18}, {-130, 6.5}, {-90, 6.5}})
-    addChannelBridges("West_Turn", "X", Vector3.new(-100, -10.5, -108), route, {-130, -90})
-    for x = -144, -64, 30 do
-        addCeilingLamp(Vector3.new(x, 3.05, -108), route, "West_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
-    end
-
-    -- A remote valve chamber closes the long west route.
-    local chamber = makeModel("West_Valve_Chamber", route)
-    buildChannelFloor("West_Chamber", "X", Vector3.new(-185, -10.5, -108), 50, 46, 8, chamber)
-    part("West_Chamber_Ceiling", Vector3.new(50, 1.5, 46), Vector3.new(-185, 4.0, -108), Enum.Material.Concrete, concreteDark, chamber)
-    part("West_Chamber_West_Wall", Vector3.new(1, 14, 46), Vector3.new(-210, -3.5, -108), Enum.Material.Concrete, concrete, chamber)
-    part("West_Chamber_North_Wall", Vector3.new(50, 14, 1), Vector3.new(-185, -3.5, -131), Enum.Material.Concrete, concrete, chamber)
-    part("West_Chamber_South_Wall", Vector3.new(50, 14, 1), Vector3.new(-185, -3.5, -85), Enum.Material.Concrete, concrete, chamber)
-    part("West_Chamber_Entry_Wall_North", Vector3.new(1, 14, 14), Vector3.new(-160, -3.5, -124), Enum.Material.Concrete, concrete, chamber)
-    part("West_Chamber_Entry_Wall_South", Vector3.new(1, 14, 14), Vector3.new(-160, -3.5, -92), Enum.Material.Concrete, concrete, chamber)
-    part("West_Chamber_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(-160, 2.5, -108), Enum.Material.Concrete, concreteDark, chamber)
-
-    addFlowingWater("West_Chamber_Runoff", "X", Vector3.new(-185, -9.94, -108), 50, 8, chamber, {{-185, 6.5}})
-    addChannelBridges("West_Chamber", "X", Vector3.new(-185, -10.5, -108), chamber, {-185})
-    local wheelHub = cylinder("West_Main_Valve_Hub", 1.1, 3.1, Vector3.new(-204, -3.7, -108), Enum.Material.Metal, rust, chamber, Vector3.new(0, 90, 0))
-    part("West_Valve_Wheel_Vertical", Vector3.new(0.35, 5, 0.35), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
-    part("West_Valve_Wheel_Horizontal", Vector3.new(0.35, 0.35, 5), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
-    for _, x in ipairs({-198, -178}) do
-        addCeilingLamp(Vector3.new(x, 3.15, -108), chamber, "West_Chamber_Lamp", Color3.fromRGB(187, 201, 183), 1.7, 28)
-    end
-end
-
-local function buildEastDrainExtension()
-    local route = makeModel("East_Drain_Extension")
-
-    -- Continue straight out of the pump room, then turn east at the end.
-    buildChannelFloor("East_Leg", "Z", Vector3.new(35, -10.5, 210), 108, 18, 8, route)
-    -- End the vertical side walls at the elbow entrance; the turn itself stays open.
-    part("East_Leg_Left_Wall", Vector3.new(1, 7, 97), Vector3.new(26, -6.5, 204.5), Enum.Material.Concrete, concrete, route)
-    part("East_Leg_Right_Wall", Vector3.new(1, 7, 97), Vector3.new(44, -6.5, 204.5), Enum.Material.Concrete, concrete, route)
-    buildArch("Z", 35, 210, -3, 7.5, 108, route, "East_Leg", Enum.Material.Concrete, concreteDark, 1.55)
-    local ribs = {}
-    for z = 168, 252, 16 do
-        if z < 248 then table.insert(ribs, z) end
-    end
-    buildArchRibs("Z", 35, 210, -3, 7.02, ribs, route, "East_Leg")
-    addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 8, route, {{185, 6.5}, {220, 6.5}}, {157, 253})
-    addChannelBridges("East_Leg", "Z", Vector3.new(35, -10.5, 210), route, {185, 220})
-    for z = 180, 240, 30 do
-        addCeilingLamp(Vector3.new(35, 3.05, z), route, "East_Leg_Lamp", Color3.fromRGB(193, 207, 188), 1.9, 32)
-    end
-
-    -- Extend the elbow west far enough to overlap the full incoming side tunnel.
-    buildChannelFloor("East_Turn", "X", Vector3.new(85.5, -10.5, 262), 119, 18, 8, route)
-    -- Leave the south-side wall open across x=26..44: this is the actual doorway
-    -- from the long east leg, not a wall directly in front of the player.
-    part("East_Turn_North_Wall", Vector3.new(100, 7, 1), Vector3.new(95, -6.5, 253), Enum.Material.Concrete, concrete, route)
-    -- Keep the south entry open across x=26..44 so the incoming drain can turn east.
-    part("East_Turn_South_Wall_Right", Vector3.new(101, 7, 1), Vector3.new(94.5, -6.5, 271), Enum.Material.Concrete, concrete, route)
-    -- Continue the outside wall around the corner so the player cannot step off into open space.
-    part("East_Turn_West_Side_Wall", Vector3.new(1, 7, 18), Vector3.new(26, -6.5, 262), Enum.Material.Concrete, concrete, route)
-    buildArch("X", 85.5, 262, -3, 7.5, 119, route, "East_Turn", Enum.Material.Concrete, concreteDark, 1.55)
-    local turnRibs = {}
-    for x = 32, 144, 16 do
-        if x > 48 then table.insert(turnRibs, x) end
-    end
-    buildArchRibs("X", 85.5, 262, -3, 7.02, turnRibs, route, "East_Turn")
-    addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 8, route, {{35, 18}, {80, 6.5}, {120, 6.5}})
-    addChannelBridges("East_Turn", "X", Vector3.new(85.5, -10.5, 262), route, {80, 120})
-    for x = 50, 130, 30 do
-        addCeilingLamp(Vector3.new(x, 3.05, 262), route, "East_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
-    end
-
-    -- A final sluice chamber, with a doorway at its west side.
-    local chamber = makeModel("East_Sluice_Chamber", route)
-    buildChannelFloor("Sluice", "X", Vector3.new(160, -10.5, 262), 50, 44, 8, chamber)
-    part("Sluice_Ceiling", Vector3.new(50, 1.5, 44), Vector3.new(160, 4.0, 262), Enum.Material.Concrete, concreteDark, chamber)
-    part("Sluice_East_Wall", Vector3.new(1, 14, 44), Vector3.new(185, -3.5, 262), Enum.Material.Concrete, concrete, chamber)
-    part("Sluice_North_Wall", Vector3.new(50, 14, 1), Vector3.new(160, -3.5, 240), Enum.Material.Concrete, concrete, chamber)
-    part("Sluice_South_Wall", Vector3.new(50, 14, 1), Vector3.new(160, -3.5, 284), Enum.Material.Concrete, concrete, chamber)
-    part("Sluice_Entry_North", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 246.5), Enum.Material.Concrete, concrete, chamber)
-    part("Sluice_Entry_South", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 277.5), Enum.Material.Concrete, concrete, chamber)
-    part("Sluice_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(135, 2.5, 262), Enum.Material.Concrete, concreteDark, chamber)
-
-    addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 50, 8, chamber, {{160, 6.5}})
-    addChannelBridges("Sluice", "X", Vector3.new(160, -10.5, 262), chamber, {160})
-    local tank = cylinder("Sluice_Filter_Tank", 11, 8, Vector3.new(174, -4.1, 270), Enum.Material.Metal, Color3.fromRGB(67, 76, 69), chamber, Vector3.new(0, 0, 90))
-    tank.Material = Enum.Material.CorrodedMetal
-    part("Sluice_Tank_Cap", Vector3.new(8.5, 0.45, 8.5), Vector3.new(174, 1.05, 270), Enum.Material.Metal, rust, chamber)
-    local emergency = part("Sluice_Red_Lamp", Vector3.new(3, 0.25, 1), Vector3.new(160, 3.2, 247), Enum.Material.Neon, Color3.fromRGB(176, 50, 39), chamber)
-    emergency.CanCollide = false
-    local warning = Instance.new("PointLight")
-    warning.Color = Color3.fromRGB(255, 65, 49)
-    warning.Brightness = 1.0
-    warning.Range = 22
-    warning.Parent = emergency
-    for _, x in ipairs({145, 175}) do
-        addCeilingLamp(Vector3.new(x, 3.15, 262), chamber, "Sluice_Lamp", Color3.fromRGB(187, 201, 183), 1.7, 28)
-    end
-end
-
-local function buildEntrance()
-    local entrance = makeModel("Sewer_Entrance")
-    part("Entry_Grated_Platform", Vector3.new(12, 0.35, 11), Vector3.new(-108, -9.78, 0), Enum.Material.DiamondPlate, metal, entrance)
-    for x = -113, -103, 1.5 do
-        part("Entry_Grate_Slot", Vector3.new(0.12, 0.12, 10.2), Vector3.new(x, -9.57, 0), Enum.Material.Metal, concreteEdge, entrance)
-    end
-    for _, z in ipairs({-5.4, 5.4}) do
-        part("Entry_Safety_Rail", Vector3.new(12, 1.0, 0.18), Vector3.new(-108, -8.95, z), Enum.Material.Metal, rust, entrance)
-        for _, x in ipairs({-113, -108, -103}) do
-            part("Entry_Rail_Post", Vector3.new(0.28, 1.5, 0.28), Vector3.new(x, -9.2, z), Enum.Material.Metal, metal, entrance)
-        end
-    end
-    part("Entry_Sign_Back", Vector3.new(8, 3.2, 0.3), Vector3.new(-106, -2.6, -7.35), Enum.Material.Metal, concreteDark, entrance)
-    local signGui = Instance.new("SurfaceGui")
-    signGui.Face = Enum.NormalId.Front
-    signGui.PixelsPerStud = 26
-    signGui.Parent = entrance.Entry_Sign_Back
-    local signText = Instance.new("TextLabel")
-    signText.Size = UDim2.fromScale(1, 1)
-    signText.BackgroundTransparency = 1
-    signText.Text = "ZUGANG 04"
-    signText.TextScaled = true
-    signText.Font = Enum.Font.GothamBold
-    signText.TextColor3 = Color3.fromRGB(210, 196, 157)
-    signText.Parent = signGui
-end
-
--- VISUAL OVERHAUL: modular wall cladding, industrial service lights, safety
--- markings, premium steel crossings and pump-station architecture. Visual only.
-local function addIndustrialWallPanels(name, axis, startAlong, endAlong, spacing, sidePositions, parent, skippedRanges)
-    local function isSkipped(value)
-        for _, range in ipairs(skippedRanges or {}) do
-            if value >= range[1] and value <= range[2] then
-                return true
-            end
-        end
-        return false
-    end
-
-    for sideIndex, fixed in ipairs(sidePositions) do
-        local sideKey = sideIndex == 1 and "A" or "B"
-        for along = startAlong, endAlong, spacing do
-            if not isSkipped(along) then
-                local panelSize = axis == "X"
-                    and Vector3.new(5.2, 2.65, 0.16)
-                    or Vector3.new(0.16, 2.65, 5.2)
-                local panelPosition = axis == "X"
-                    and Vector3.new(along, -5.55, fixed)
-                    or Vector3.new(fixed, -5.55, along)
-
-                local panel = part(
-                    name .. "_" .. sideKey .. "_Wall_Module",
-                    panelSize,
-                    panelPosition,
-                    Enum.Material.DiamondPlate,
-                    (math.floor(along / spacing) % 2 == 0)
-                        and Color3.fromRGB(48, 59, 60)
-                        or Color3.fromRGB(57, 65, 64),
-                    parent
-                )
-                panel.CanCollide = false
-                panel.Reflectance = 0.06
-
-                -- Raised perimeter rails and vertical louvers make the panels feel fabricated.
-                for _, edge in ipairs({-2.48, 2.48}) do
-                    local trimSize = axis == "X"
-                        and Vector3.new(0.13, 2.82, 0.22)
-                        or Vector3.new(0.22, 2.82, 0.13)
-                    local trimPosition = axis == "X"
-                        and Vector3.new(along + edge, -5.55, fixed)
-                        or Vector3.new(fixed, -5.55, along + edge)
-                    local trim = part(name .. "_Panel_Frame", trimSize, trimPosition, Enum.Material.Metal, Color3.fromRGB(34, 43, 44), parent)
-                    trim.CanCollide = false
+        local z = centerZ + side * (halfWidth - 0.17)
+        local sideGaps = gaps or {}
+        for _, segment in ipairs(segmentsWithoutGaps(first, last, sideGaps)) do
+            for x = segment[1] + 6, segment[2] - 5, 14 do
+                local panel = part(name .. "_Armoured_Wall_Module", Vector3.new(10.4, 4.2, 0.16), Vector3.new(x, -4.8, z), Enum.Material.DiamondPlate, Color3.fromRGB(46, 59, 62), parent, 0, false)
+                panel.Reflectance = 0.05
+                for _, edge in ipairs({-4.95, 4.95}) do
+                    part(name .. "_Panel_Outer_Frame", Vector3.new(0.16, 4.45, 0.22), Vector3.new(x + edge, -4.8, z - side * 0.12), Enum.Material.Metal, C.steel, parent, 0, false)
                 end
-
-                for _, height in ipairs({-6.88, -4.22}) do
-                    local trimSize = axis == "X"
-                        and Vector3.new(5.18, 0.12, 0.22)
-                        or Vector3.new(0.22, 0.12, 5.18)
-                    local trimPosition = axis == "X"
-                        and Vector3.new(along, height, fixed)
-                        or Vector3.new(fixed, height, along)
-                    local trim = part(name .. "_Panel_Horizontal_Trim", trimSize, trimPosition, Enum.Material.Metal, Color3.fromRGB(35, 44, 44), parent)
-                    trim.CanCollide = false
+                for _, y in ipairs({-6.9, -2.7}) do
+                    part(name .. "_Panel_Horizontal_Rail", Vector3.new(10.25, 0.12, 0.2), Vector3.new(x, y, z - side * 0.12), Enum.Material.Metal, C.steelMid, parent, 0, false)
                 end
-
-                for louver = -1, 1 do
-                    local louverSize = axis == "X"
-                        and Vector3.new(0.1, 1.1, 0.08)
-                        or Vector3.new(0.08, 1.1, 0.1)
-                    local louverPosition = axis == "X"
-                        and Vector3.new(along + louver * 0.55, -5.65, fixed + (fixed < 0 and 0.13 or -0.13))
-                        or Vector3.new(fixed + (fixed < 0 and 0.13 or -0.13), -5.65, along + louver * 0.55)
-                    local slat = part(name .. "_Panel_Louver", louverSize, louverPosition, Enum.Material.Metal, Color3.fromRGB(93, 103, 99), parent)
-                    slat.CanCollide = false
+                for louver = -2, 2 do
+                    part(name .. "_Panel_Vent_Slat", Vector3.new(0.12, 1.25, 0.08), Vector3.new(x + louver * 0.55, -4.95, z - side * 0.2), Enum.Material.Metal, C.steelBright, parent, 0, false)
                 end
-
-                local accentPosition = axis == "X"
-                    and Vector3.new(along + 1.95, -4.75, fixed + (fixed < 0 and 0.16 or -0.16))
-                    or Vector3.new(fixed + (fixed < 0 and 0.16 or -0.16), -4.75, along + 1.95)
-                local accentSize = axis == "X"
-                    and Vector3.new(0.12, 0.42, 0.07)
-                    or Vector3.new(0.07, 0.42, 0.12)
-                local indicator = part(name .. "_Teal_Status_Indicator", accentSize, accentPosition, Enum.Material.Neon, Color3.fromRGB(76, 177, 164), parent)
-                indicator.CanCollide = false
-                indicator.CastShadow = false
-
-                if math.floor(along / spacing) % 2 == 0 then
-                    local tabPosition = axis == "X"
-                        and Vector3.new(along - 1.95, -6.55, fixed + (fixed < 0 and 0.16 or -0.16))
-                        or Vector3.new(fixed + (fixed < 0 and 0.16 or -0.16), -6.55, along - 1.95)
-                    local tabSize = axis == "X"
-                        and Vector3.new(0.13, 0.45, 0.07)
-                        or Vector3.new(0.07, 0.45, 0.13)
-                    local tab = part(name .. "_Amber_Service_Tab", tabSize, tabPosition, Enum.Material.Neon, yellow, parent)
-                    tab.CanCollide = false
-                    tab.CastShadow = false
-                end
+                local status = part(name .. "_Teal_Module_Status", Vector3.new(0.12, 0.48, 0.08), Vector3.new(x + 4.35, -3.5, z - side * 0.2), Enum.Material.Neon, C.teal, parent, 0, false)
+                status.CastShadow = false
             end
         end
     end
 end
 
-local function addWalkwaySafetyLines(name, axis, center, length, parent)
+local function addWallPanelsZ(name, first, last, centerX, halfWidth, parent)
     for _, side in ipairs({-1, 1}) do
-        local lineSize = axis == "X"
-            and Vector3.new(length, 0.035, 0.16)
-            or Vector3.new(0.16, 0.035, length)
-        local linePosition = axis == "X"
-            and Vector3.new(center.X, -9.965, center.Z + side * 4.18)
-            or Vector3.new(center.X + side * 4.18, -9.965, center.Z)
-        local line = part(name .. "_Walkway_Safety_Line", lineSize, linePosition, Enum.Material.Neon, yellow, parent, 0.22)
-        line.CanCollide = false
+        local x = centerX + side * (halfWidth - 0.17)
+        for z = first + 6, last - 5, 14 do
+            part(name .. "_Armoured_Wall_Module", Vector3.new(0.16, 4.2, 10.4), Vector3.new(x, -4.8, z), Enum.Material.DiamondPlate, Color3.fromRGB(46, 59, 62), parent, 0, false)
+            for _, offset in ipairs({-4.95, 4.95}) do
+                part(name .. "_Panel_Outer_Frame", Vector3.new(0.22, 4.45, 0.16), Vector3.new(x - side * 0.12, -4.8, z + offset), Enum.Material.Metal, C.steel, parent, 0, false)
+            end
+            for _, y in ipairs({-6.9, -2.7}) do
+                part(name .. "_Panel_Horizontal_Rail", Vector3.new(0.2, 0.12, 10.25), Vector3.new(x - side * 0.12, y, z), Enum.Material.Metal, C.steelMid, parent, 0, false)
+            end
+            for louver = -2, 2 do
+                part(name .. "_Panel_Vent_Slat", Vector3.new(0.08, 1.25, 0.12), Vector3.new(x - side * 0.2, -4.95, z + louver * 0.55), Enum.Material.Metal, C.steelBright, parent, 0, false)
+            end
+            part(name .. "_Teal_Module_Status", Vector3.new(0.08, 0.48, 0.12), Vector3.new(x - side * 0.2, -3.5, z + 4.35), Enum.Material.Neon, C.teal, parent, 0, false)
+        end
+    end
+end
+
+local function addPipeRunX(name, first, last, centerZ, side, parent)
+    local z = centerZ + side * 14.2
+    local mainPipe = cylinder(name .. "_Primary_Pressure_Main", last - first, 1.05, Vector3.new((first + last) / 2, -4.6, z), Enum.Material.CorrodedMetal, C.rust, parent)
+    mainPipe.Reflectance = 0.1
+    cylinder(name .. "_Secondary_Service_Line", last - first, 0.48, Vector3.new((first + last) / 2, -2.7, z - side * 1.5), Enum.Material.Metal, C.steelMid, parent)
+    cylinder(name .. "_Cable_Conduit", last - first, 0.24, Vector3.new((first + last) / 2, -1.7, z - side * 2.6), Enum.Material.Metal, C.steelBright, parent)
+
+    for x = first + 12, last - 10, 18 do
+        part(name .. "_Pipe_Saddle", Vector3.new(0.9, 1.3, 1.1), Vector3.new(x, -4.6, z), Enum.Material.Metal, C.steel, parent)
+    end
+    for x = first + 24, last - 16, 48 do
+        local flange = cylinder(name .. "_Bolted_Flange", 0.24, 1.32, Vector3.new(x, -4.6, z), Enum.Material.CorrodedMetal, C.rustDark, parent)
+        flange.Reflectance = 0.08
+    end
+end
+
+local function addPipeRunZ(name, first, last, centerX, side, parent)
+    local x = centerX + side * 12.0
+    local mainPipe = cylinder(name .. "_Primary_Pressure_Main", last - first, 0.98, Vector3.new(x, -4.6, (first + last) / 2), Enum.Material.CorrodedMetal, C.rust, parent, "Z")
+    mainPipe.Reflectance = 0.1
+    cylinder(name .. "_Secondary_Service_Line", last - first, 0.45, Vector3.new(x - side * 1.5, -2.7, (first + last) / 2), Enum.Material.Metal, C.steelMid, parent, "Z")
+    for z = first + 12, last - 10, 18 do
+        part(name .. "_Pipe_Saddle", Vector3.new(1.1, 1.2, 0.9), Vector3.new(x, -4.6, z), Enum.Material.Metal, C.steel, parent)
+    end
+end
+
+local function addWalkwayLinesX(name, first, last, centerZ, parent, halfChannel)
+    for _, side in ipairs({-1, 1}) do
+        local line = part(name .. "_Amber_Safety_Line", Vector3.new(last - first, 0.035, 0.15), Vector3.new((first + last) / 2, -9.97, centerZ + side * (halfChannel + 1.15)), Enum.Material.Neon, C.amber, parent, 0.12, false)
         line.CastShadow = false
     end
 end
 
-local function addWallMountedServiceLights(name, axis, positions, fixedSides, parent)
-    for _, along in ipairs(positions) do
-        for _, fixed in ipairs(fixedSides) do
-            local holderSize = axis == "X" and Vector3.new(0.45, 1.1, 0.35) or Vector3.new(0.35, 1.1, 0.45)
-            local holderPosition = axis == "X"
-                and Vector3.new(along, -3.35, fixed)
-                or Vector3.new(fixed, -3.35, along)
-            local holder = part(name .. "_Wall_Light_Housing", holderSize, holderPosition, Enum.Material.Metal, Color3.fromRGB(32, 41, 41), parent)
-
-            local lensSize = axis == "X" and Vector3.new(0.22, 0.72, 0.12) or Vector3.new(0.12, 0.72, 0.22)
-            local lensPosition = axis == "X"
-                and Vector3.new(along, -3.35, fixed + (fixed < 0 and 0.24 or -0.24))
-                or Vector3.new(fixed + (fixed < 0 and 0.24 or -0.24), -3.35, along)
-            local lens = part(name .. "_Wall_Light_Lens", lensSize, lensPosition, Enum.Material.Neon, Color3.fromRGB(107, 184, 170), parent)
-            lens.CanCollide = false
-            lens.CastShadow = false
-
-            local light = Instance.new("PointLight")
-            light.Color = Color3.fromRGB(115, 190, 174)
-            light.Brightness = 0.35
-            light.Range = 10
-            light.Shadows = false
-            light.Parent = lens
-        end
+local function addWalkwayLinesZ(name, first, last, centerX, parent, halfChannel)
+    for _, side in ipairs({-1, 1}) do
+        local line = part(name .. "_Amber_Safety_Line", Vector3.new(0.15, 0.035, last - first), Vector3.new(centerX + side * (halfChannel + 1.15), -9.97, (first + last) / 2), Enum.Material.Neon, C.amber, parent, 0.12, false)
+        line.CastShadow = false
     end
 end
 
-local function addIndustrialSign(name, wording, position, size, face, parent)
-    local sign = part(name .. "_Backplate", size, position, Enum.Material.Metal, Color3.fromRGB(26, 36, 38), parent)
-    local edge = Instance.new("SurfaceGui")
-    edge.Name = name .. "_Display"
-    edge.Face = face
-    edge.PixelsPerStud = 32
-    edge.Parent = sign
+local function buildTunnelX(name, first, last, centerZ, width, parent, negativeGaps, positiveGaps, bridges)
+    local model = newModel(name, parent)
+    local half = width / 2
+    local channel = 10
+    buildChannelFloor(name, "X", (first + last) / 2, centerZ, last - first, width, channel, model)
+    addWallRunX(name .. "_South", first, last, centerZ, half, -1, model, negativeGaps)
+    addWallRunX(name .. "_North", first, last, centerZ, half, 1, model, positiveGaps)
+    buildArchX(name, first, last, centerZ, half, model, -1.5)
+    local skipped = {}
+    for _, gap in ipairs(negativeGaps or {}) do table.insert(skipped, gap) end
+    for _, gap in ipairs(positiveGaps or {}) do table.insert(skipped, gap) end
+    addVaultRibsX(name, first, last, centerZ, half - 0.32, model, skipped)
+
+    addWater(name .. "_River", "X", (first + last) / 2, centerZ, last - first, channel, model)
+    addRiverWallsX(name, first, last, centerZ, channel, model, bridges)
+    addBridgesX(name, bridges, centerZ, model)
+
+    addWallPanelsX(name, first + 6, last - 6, centerZ, half, model, negativeGaps)
+    addPipeRunX(name .. "_South", first + 4, last - 4, centerZ, -1, model)
+    addPipeRunX(name .. "_North", first + 4, last - 4, centerZ, 1, model)
+    addWalkwayLinesX(name, first + 3, last - 3, centerZ, model, channel / 2)
+
+    for x = first + 18, last - 12, 28 do
+        addLamp(name .. "_Linear_LED", Vector3.new(x, 7.0, centerZ), model, 2.8, 44)
+    end
+    return model
+end
+
+local function buildTunnelZ(name, centerX, first, last, width, parent, bridges)
+    local model = newModel(name, parent)
+    local half = width / 2
+    local channel = 10
+    buildChannelFloor(name, "Z", centerX, (first + last) / 2, last - first, width, channel, model)
+    addWallRunZ(name .. "_West", first, last, centerX, half, -1, model)
+    addWallRunZ(name .. "_East", first, last, centerX, half, 1, model)
+    buildArchZ(name, first, last, centerX, half, model, -1.5)
+    addVaultRibsZ(name, first, last, centerX, half - 0.32, model)
+
+    addWater(name .. "_River", "Z", centerX, (first + last) / 2, last - first, channel, model)
+    addRiverWallsZ(name, first, last, centerX, channel, model, bridges)
+    addBridgesZ(name, bridges, centerX, model)
+
+    addWallPanelsZ(name, first + 6, last - 6, centerX, half, model)
+    addPipeRunZ(name .. "_West", first + 4, last - 4, centerX, -1, model)
+    addPipeRunZ(name .. "_East", first + 4, last - 4, centerX, 1, model)
+    addWalkwayLinesZ(name, first + 3, last - 3, centerX, model, channel / 2)
+
+    for z = first + 18, last - 12, 28 do
+        addLamp(name .. "_Linear_LED", Vector3.new(centerX, 7.0, z), model, 2.65, 42)
+    end
+    return model
+end
+
+local function addIndustrialSign(name, text, position, size, face, parent)
+    local plate = part(name .. "_Backplate", size, position, Enum.Material.Metal, C.steel, parent)
+    local gui = Instance.new("SurfaceGui")
+    gui.Name = name .. "_Surface"
+    gui.Face = face
+    gui.PixelsPerStud = 34
+    gui.Parent = plate
 
     local label = Instance.new("TextLabel")
     label.Size = UDim2.fromScale(1, 1)
     label.BackgroundTransparency = 1
-    label.Text = wording
-    label.TextColor3 = Color3.fromRGB(136, 204, 188)
+    label.Text = text
+    label.TextColor3 = C.teal
     label.TextScaled = true
     label.Font = Enum.Font.GothamBold
-    label.Parent = edge
-    return sign
+    label.Parent = gui
+
+    local stroke = Instance.new("UIStroke")
+    stroke.Color = C.steelBright
+    stroke.Thickness = 1
+    stroke.Parent = label
+    return plate
 end
 
-local function addPumpRoomVisuals()
-    local room = world:FindFirstChild("Old_Pump_Room")
-    if not room then return end
+local function addPumpAssembly(name, position, parent, scale)
+    scale = scale or 1
+    local x, y, z = position.X, position.Y, position.Z
+    part(name .. "_Foundation", Vector3.new(11 * scale, 0.8, 8 * scale), Vector3.new(x, y - 1.3 * scale, z), Enum.Material.Metal, C.steel, parent)
 
-    -- A high steel gantry frames the equipment and gives the pump chamber scale.
-    for _, x in ipairs({13, 57}) do
-        for _, z in ipairs({120, 148}) do
-            part("Pump_Gantry_Column", Vector3.new(0.55, 12.5, 0.55), Vector3.new(x, -3.0, z), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
+    local motor = part(name .. "_Motor_Housing", Vector3.new(5.3 * scale, 3.2 * scale, 4.2 * scale), Vector3.new(x + 1.1 * scale, y + 0.7 * scale, z), Enum.Material.CorrodedMetal, Color3.fromRGB(57, 68, 66), parent)
+    motor.Reflectance = 0.08
+    cylinder(name .. "_Motor_Fan_Cover", 0.28 * scale, 3.2 * scale, Vector3.new(x + 3.8 * scale, y + 0.7 * scale, z), Enum.Material.Metal, C.steelBright, parent)
+    cylinder(name .. "_Pump_Coupling", 2.3 * scale, 1.4 * scale, Vector3.new(x - 2.1 * scale, y + 0.8 * scale, z), Enum.Material.Metal, C.rust, parent)
+
+    local volute = cylinder(name .. "_Pump_Volute", 2.5 * scale, 4.1 * scale, Vector3.new(x - 4.0 * scale, y + 1.1 * scale, z), Enum.Material.CorrodedMetal, C.steelMid, parent)
+    volute.Reflectance = 0.12
+    cylinder(name .. "_Pump_Inlet", 6.5 * scale, 1.65 * scale, Vector3.new(x - 5.0 * scale, y + 1.0 * scale, z), Enum.Material.CorrodedMetal, C.rust, parent)
+    cylinder(name .. "_Pump_Outlet", 6.0 * scale, 1.4 * scale, Vector3.new(x - 4.0 * scale, y + 3.2 * scale, z), Enum.Material.Metal, C.steelBright, parent)
+
+    for bolt = 1, 4 do
+        local angle = math.rad((bolt - 1) * 90)
+        local boltPart = part(
+            name .. "_Housing_Bolt",
+            Vector3.new(0.16, 0.16, 0.16),
+            Vector3.new(x + math.cos(angle) * 2.0 * scale, y + 2.35 * scale, z + math.sin(angle) * 1.6 * scale),
+            Enum.Material.Metal,
+            C.steelBright,
+            parent
+        )
+        boltPart.Shape = Enum.PartType.Ball
+    end
+end
+
+local function buildPumpHall()
+    local hall = newModel("Grand_Pump_Hall")
+    local centerX, centerZ = -55, -166
+    local width, length = 82, 60
+    buildChannelFloor("Pump_Hall", "Z", centerX, centerZ, length, width, 10, hall)
+    addRiverWallsZ("Pump_Hall", centerZ - length / 2, centerZ + length / 2, centerX, 10, hall, {-166, -146})
+    addWater("Pump_Hall_River", "Z", centerX, centerZ, length, 10, hall)
+    addBridgesZ("Pump_Hall", {-166, -146}, centerX, hall)
+
+    part("Pump_Hall_West_Wall", Vector3.new(1.3, 19, length), Vector3.new(centerX - width / 2, -1.0, centerZ), Enum.Material.Concrete, C.concrete, hall)
+    part("Pump_Hall_East_Wall", Vector3.new(1.3, 19, length), Vector3.new(centerX + width / 2, -1.0, centerZ), Enum.Material.Concrete, C.concrete, hall)
+    addEndWallZ("Pump_Hall_North_End", centerZ - length / 2, centerX, width / 2, hall)
+    addEndWallZ("Pump_Hall_South_End", centerZ + length / 2, centerX, width / 2, hall, {{centerX, 30}})
+
+    part("Pump_Hall_Raised_Roof", Vector3.new(width, 1.8, length), Vector3.new(centerX, 8.8, centerZ), Enum.Material.Concrete, C.concreteDark, hall)
+    for x = centerX - width / 2 + 4, centerX + width / 2 - 4, 12 do
+        part("Pump_Hall_Ceiling_Girder", Vector3.new(0.65, 1.1, length - 3), Vector3.new(x, 7.6, centerZ), Enum.Material.Metal, C.steel, hall)
+    end
+
+    -- Two huge pump skids stand on the dry platforms either side of the river.
+    addPumpAssembly("Pump_Alpha", Vector3.new(-83, -6.5, -155), hall, 1.2)
+    addPumpAssembly("Pump_Beta", Vector3.new(-27, -6.5, -177), hall, 1.2)
+
+    for _, z in ipairs({-188, -144}) do
+        cylinder("Pump_Hall_Overhead_Header", 70, 1.15, Vector3.new(centerX, 4.5, z), Enum.Material.CorrodedMetal, C.rust, hall)
+        cylinder("Pump_Hall_Header_Secondary", 70, 0.5, Vector3.new(centerX, 5.9, z + 3), Enum.Material.Metal, C.steelBright, hall)
+    end
+
+    -- A suspended service gantry spans the equipment bay.
+    for _, x in ipairs({-91, -19}) do
+        for _, z in ipairs({-188, -144}) do
+            part("Pump_Gantry_Column", Vector3.new(0.7, 15, 0.7), Vector3.new(x, 1.0, z), Enum.Material.Metal, C.steel, hall)
         end
     end
-    part("Pump_Gantry_Beam_Front", Vector3.new(44, 0.65, 0.65), Vector3.new(35, 3.0, 120), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
-    part("Pump_Gantry_Beam_Back", Vector3.new(44, 0.65, 0.65), Vector3.new(35, 3.0, 148), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
-    part("Pump_Gantry_Cross_Beam", Vector3.new(0.65, 0.65, 28), Vector3.new(35, 3.0, 134), Enum.Material.Metal, Color3.fromRGB(43, 52, 53), room)
+    part("Pump_Gantry_Main_Beam", Vector3.new(72, 0.8, 0.8), Vector3.new(centerX, 8.0, -166), Enum.Material.Metal, C.steelMid, hall)
+    part("Pump_Gantry_Cross_Beam", Vector3.new(0.8, 0.8, 44), Vector3.new(centerX, 8.0, -166), Enum.Material.Metal, C.steelMid, hall)
 
-    -- Large pressure lines run over the pumps and connect the two walls.
-    for _, z in ipairs({120, 124, 144, 148}) do
-        local pipe = cylinder("Pump_Room_Overhead_Pressure_Line", 42, 0.78, Vector3.new(35, 1.55, z), Enum.Material.CorrodedMetal, Color3.fromRGB(77, 57, 46), room)
-        pipe.Reflectance = 0.1
+    for _, z in ipairs({-188, -166, -144}) do
+        addLamp("Pump_Hall_LED", Vector3.new(centerX, 7.0, z), hall, 3.0, 48)
     end
 
-    -- A readable industrial station identifier on the right-side wall.
-    addIndustrialSign(
-        "Pump_Room_Industrial_ID",
-        "PUMP STATION  /  02",
-        Vector3.new(59.25, -3.1, 136),
-        Vector3.new(0.18, 2.8, 8),
-        Enum.NormalId.Left,
-        room
+    addIndustrialSign("Pump_Hall_Sign", "PUMP STATION  /  02", Vector3.new(centerX + width / 2 - 0.8, 4.2, centerZ), Vector3.new(0.2, 3.2, 12), Enum.NormalId.Left, hall)
+
+    local emergency = part("Pump_Hall_Emergency_Beacon", Vector3.new(1.4, 0.8, 1.4), Vector3.new(centerX + 31, 6.6, centerZ - 8), Enum.Material.Neon, C.red, hall, 0, false)
+    local redLight = Instance.new("PointLight")
+    redLight.Color = C.red
+    redLight.Brightness = 1.7
+    redLight.Range = 28
+    redLight.Parent = emergency
+end
+
+local function buildSluiceHall()
+    local hall = newModel("Grand_Sluice_Hall")
+    local centerX, centerZ = 231, 150
+    local width, depth = 82, 84
+    local firstX, lastX = centerX - width / 2, centerX + width / 2
+
+    buildChannelFloor("Sluice_Hall", "X", centerX, centerZ, width, depth, 10, hall)
+    addWater("Sluice_Hall_River", "X", centerX, centerZ, width, 10, hall)
+    addRiverWallsX("Sluice_Hall", firstX, lastX, centerZ, 10, hall, {208, 252})
+    addBridgesX("Sluice_Hall", {208, 252}, centerZ, hall)
+
+    part("Sluice_Hall_North_Wall", Vector3.new(width, 19, 1.3), Vector3.new(centerX, -1.0, centerZ + depth / 2), Enum.Material.Concrete, C.concrete, hall)
+    part("Sluice_Hall_South_Wall", Vector3.new(width, 19, 1.3), Vector3.new(centerX, -1.0, centerZ - depth / 2), Enum.Material.Concrete, C.concrete, hall)
+    addEndWallX("Sluice_Hall_West_Entry", firstX, centerZ, depth / 2, hall, {{centerZ, 30}})
+    addEndWallX("Sluice_Hall_East_Wall", lastX, centerZ, depth / 2, hall)
+
+    part("Sluice_Hall_Raised_Roof", Vector3.new(width, 1.8, depth), Vector3.new(centerX, 8.8, centerZ), Enum.Material.Concrete, C.concreteDark, hall)
+    for z = centerZ - depth / 2 + 5, centerZ + depth / 2 - 5, 12 do
+        part("Sluice_Hall_Ceiling_Girder", Vector3.new(width - 4, 1.1, 0.7), Vector3.new(centerX, 7.6, z), Enum.Material.Metal, C.steel, hall)
+    end
+
+    -- A very large sluice gate is mounted over the flow, with the bottom bars kept above the crossing route.
+    part("Sluice_Gate_Top_Housing", Vector3.new(2.2, 3.2, 14), Vector3.new(260, 2.0, centerZ), Enum.Material.Metal, C.steel, hall)
+    for z = centerZ - 5.5, centerZ + 5.5, 1.1 do
+        part("Sluice_Gate_Heavy_Bar", Vector3.new(0.45, 5.0, 0.45), Vector3.new(260, -1.7, z), Enum.Material.CorrodedMetal, C.rust, hall)
+    end
+    for _, z in ipairs({centerZ - 6.6, centerZ + 6.6}) do
+        part("Sluice_Gate_Guide_Rail", Vector3.new(0.65, 8, 0.65), Vector3.new(260, -2.4, z), Enum.Material.Metal, C.steelBright, hall)
+    end
+
+    -- Filter columns and a large pressure manifold flank the eastern end.
+    for _, z in ipairs({centerZ - 28, centerZ + 28}) do
+        local tank = cylinder("Sluice_Filter_Column", 13, 8, Vector3.new(245, -3.2, z), Enum.Material.CorrodedMetal, C.steelMid, hall, "Y")
+        tank.Reflectance = 0.12
+        cylinder("Sluice_Filter_Collar", 0.45, 8.6, Vector3.new(245, -8.0, z), Enum.Material.Metal, C.steelBright, hall, "Y")
+        cylinder("Sluice_Filter_Collar", 0.45, 8.6, Vector3.new(245, 1.6, z), Enum.Material.Metal, C.steelBright, hall, "Y")
+    end
+    cylinder("Sluice_Upper_Manifold", 66, 1.3, Vector3.new(231, 5.2, centerZ + 34), Enum.Material.CorrodedMetal, C.rust, hall)
+    cylinder("Sluice_Lower_Manifold", 66, 0.7, Vector3.new(231, 3.8, centerZ - 34), Enum.Material.Metal, C.steelBright, hall)
+
+    for _, x in ipairs({205, 231, 257}) do
+        addLamp("Sluice_Hall_LED", Vector3.new(x, 7.0, centerZ), hall, 3.0, 48)
+    end
+    addIndustrialSign("Sluice_Hall_Sign", "MAIN SLUICE  /  04", Vector3.new(270.0, 4.5, centerZ), Vector3.new(0.2, 3.2, 13), Enum.NormalId.Left, hall)
+
+    local beacon = part("Sluice_Red_Beacon", Vector3.new(1.6, 0.8, 1.6), Vector3.new(255, 6.4, centerZ + 33), Enum.Material.Neon, C.red, hall, 0, false)
+    local redLight = Instance.new("PointLight")
+    redLight.Color = C.red
+    redLight.Brightness = 1.4
+    redLight.Range = 24
+    redLight.Parent = beacon
+end
+
+local function addMainTunnelGate()
+    local gate = newModel("Main_Restricted_Gate")
+    local x = 118
+    for _, z in ipairs({-15.6, 15.6}) do
+        part("Gate_Heavy_Pillar", Vector3.new(1.4, 13, 1.4), Vector3.new(x, -4.0, z), Enum.Material.Metal, C.steel, gate)
+    end
+    part("Gate_Top_Beam", Vector3.new(1.5, 1.3, 31), Vector3.new(x, 2.4, 0), Enum.Material.Metal, C.steelMid, gate)
+    for z = -14, 14, 1.6 do
+        part("Gate_Vertical_Bar", Vector3.new(0.4, 10.5, 0.4), Vector3.new(x, -4.2, z), Enum.Material.CorrodedMetal, C.rust, gate)
+    end
+    part("Gate_Warning_Plate", Vector3.new(0.4, 2.8, 10), Vector3.new(x - 0.3, -2.0, 0), Enum.Material.Metal, C.steel, gate)
+    addIndustrialSign("Gate_Zone_Sign", "RESTRICTED  /  SECTOR 04", Vector3.new(x - 0.55, -2.0, -0.1), Vector3.new(0.15, 2.8, 9), Enum.NormalId.Right, gate)
+
+    local warning = part("Gate_Alarm_Beacon", Vector3.new(0.7, 0.7, 0.7), Vector3.new(x - 1, 1.1, -13.5), Enum.Material.Neon, C.red, gate, 0, false)
+    local light = Instance.new("PointLight")
+    light.Color = C.red
+    light.Brightness = 1.4
+    light.Range = 20
+    light.Parent = warning
+end
+
+local function buildMainSewer()
+    local main = buildTunnelX(
+        "Main_Concourse",
+        -140,
+        140,
+        0,
+        34,
+        world,
+        {{-55, 30}},
+        {{65, 30}},
+        {-108, -22, 28, 91}
     )
-end
 
-local function buildVisualOverhaul()
-    local main = world:FindFirstChild("Main_Sewer_Tunnel")
-    if main then
-        addIndustrialWallPanels("Main", "X", -104, 184, 32, {-7.38, 7.38}, main, {{-64, -32}, {24, 48}})
-        addWallMountedServiceLights("Main", "X", {-88, -24, 72, 136}, {-7.2, 7.2}, main)
-        addWalkwaySafetyLines("Main", "X", Vector3.new(40, -10.5, 0), 300, main)
+    -- A sealed beginning and far end keep the player inside the playable facility.
+    addEndWallX("Main_Entrance_Seal", -140, 0, 17, main)
+    addEndWallX("Main_Far_Seal", 140, 0, 17, main)
 
-        -- Three large overhead manifolds create the silhouette of a major utility tunnel.
-        cylinder("Main_Ceiling_Manifold", 286, 1.0, Vector3.new(40, 3.55, -1.8), Enum.Material.Metal, Color3.fromRGB(47, 57, 58), main)
-        cylinder("Main_Ceiling_Utility_Line_A", 286, 0.42, Vector3.new(40, 2.65, -3.8), Enum.Material.Metal, Color3.fromRGB(93, 105, 101), main)
-        cylinder("Main_Ceiling_Utility_Line_B", 286, 0.42, Vector3.new(40, 2.65, 3.8), Enum.Material.Metal, Color3.fromRGB(93, 105, 101), main)
-        for x = -96, 176, 32 do
-            local support = part("Main_Ceiling_Manifold_Hanger", Vector3.new(0.35, 1.1, 0.35), Vector3.new(x, 3.8, -1.8), Enum.Material.Metal, Color3.fromRGB(37, 46, 47), main)
-            support.CanCollide = false
+    addIndustrialSign("Main_Concourse_ID", "DRAINAGE CONCOURSE  /  LINE 01", Vector3.new(-98, -2.3, -16.2), Vector3.new(13, 3.2, 0.22), Enum.NormalId.Front, main)
+
+    -- Heavy maintenance supports at the entrance and along the main gallery.
+    for x = -126, 126, 36 do
+        for _, side in ipairs({-1, 1}) do
+            part("Main_Gallery_Wall_Pilaster", Vector3.new(1.25, 9.3, 1.4), Vector3.new(x, -6.0, side * 16.0), Enum.Material.Metal, C.steel, main)
+            part("Main_Gallery_Pilaster_Foot", Vector3.new(2.0, 0.35, 1.8), Vector3.new(x, -9.82, side * 16.0), Enum.Material.Metal, C.steelMid, main)
         end
     end
 
-    local branch = world:FindFirstChild("Pump_Room_Access")
-    if branch then
-        addIndustrialWallPanels("Branch", "Z", 20, 100, 32, {26.55, 43.45}, branch)
-        addWallMountedServiceLights("Branch", "Z", {32, 70, 96}, {26.3, 43.7}, branch)
-        addWalkwaySafetyLines("Branch", "Z", Vector3.new(35, -10.5, 60), 95, branch)
+    -- Extra overhead service conduits, anchored to the roof crown.
+    cylinder("Main_Crown_Manifold", 255, 1.25, Vector3.new(-12, 11.4, 0), Enum.Material.Metal, C.steelMid, main)
+    cylinder("Main_Crown_Conduit_A", 255, 0.42, Vector3.new(-12, 10.1, -3.0), Enum.Material.CorrodedMetal, C.rust, main)
+    cylinder("Main_Crown_Conduit_B", 255, 0.42, Vector3.new(-12, 10.1, 3.0), Enum.Material.CorrodedMetal, C.rust, main)
+    for x = -120, 120, 24 do
+        part("Main_Crown_Manifold_Hanger", Vector3.new(0.42, 2.0, 0.42), Vector3.new(x, 10.0, 0), Enum.Material.Metal, C.steel, main)
     end
 
-    local west = world:FindFirstChild("West_Service_Route")
-    if west then
-        addIndustrialWallPanels("West_Leg", "Z", -92, -20, 32, {-58.55, -41.45}, west)
-        addIndustrialWallPanels("West_Turn", "X", -144, -56, 32, {-99.55, -116.45}, west, {{-64, -32}})
-        addWallMountedServiceLights("West_Leg", "Z", {-88, -48, -16}, {-58.3, -41.7}, west)
-        addWalkwaySafetyLines("West_Leg", "Z", Vector3.new(-50, -10.5, -62), 90, west)
-        addWalkwaySafetyLines("West_Turn", "X", Vector3.new(-100, -10.5, -108), 105, west)
-
-        cylinder("West_Turn_Ceiling_Pipe_A", 105, 0.6, Vector3.new(-100, 3.6, -120), Enum.Material.CorrodedMetal, Color3.fromRGB(81, 57, 45), west)
-        cylinder("West_Turn_Ceiling_Pipe_B", 105, 0.6, Vector3.new(-100, 3.6, -96), Enum.Material.CorrodedMetal, Color3.fromRGB(81, 57, 45), west)
-    end
-
-    local east = world:FindFirstChild("East_Drain_Extension")
-    if east then
-        addIndustrialWallPanels("East_Leg", "Z", 176, 240, 32, {26.55, 43.45}, east)
-        addIndustrialWallPanels("East_Turn", "X", 48, 144, 32, {253.55, 270.45}, east, {{24, 48}})
-        addWallMountedServiceLights("East_Leg", "Z", {184, 224}, {26.3, 43.7}, east)
-        addWalkwaySafetyLines("East_Leg", "Z", Vector3.new(35, -10.5, 210), 90, east)
-        addWalkwaySafetyLines("East_Turn", "X", Vector3.new(85.5, -10.5, 262), 105, east)
-
-        cylinder("East_Leg_Overhead_Service_Pipe_A", 94, 0.42, Vector3.new(35, 3.4, 210), Enum.Material.Metal, Color3.fromRGB(83, 97, 94), east, Vector3.new(0, 90, 0))
-        cylinder("East_Leg_Overhead_Service_Pipe_B", 94, 0.42, Vector3.new(38, 3.4, 210), Enum.Material.Metal, Color3.fromRGB(83, 97, 94), east, Vector3.new(0, 90, 0))
-
-        local sluice = east:FindFirstChild("East_Sluice_Chamber")
-        if sluice then
-            addIndustrialWallPanels("Sluice_Side", "Z", 244, 280, 16, {135.55, 184.45}, sluice, {{253, 271}})
-            addIndustrialWallPanels("Sluice_End", "X", 140, 180, 16, {240.55, 283.45}, sluice)
-            addWalkwaySafetyLines("Sluice", "X", Vector3.new(160, -10.5, 262), 44, sluice)
-            addIndustrialSign("Sluice_Zone_ID", "SLUICE CONTROL  /  04", Vector3.new(184.45, -3.1, 262), Vector3.new(0.18, 2.8, 10), Enum.NormalId.Left, sluice)
-        end
-    end
-
-    -- Old_Pump_Room is a direct child of SewerWorld, separate from its access tunnel.
-    local pumpRoom = world:FindFirstChild("Old_Pump_Room")
-    if pumpRoom then
-        addIndustrialWallPanels("Pump_Room_Side", "Z", 116, 152, 16, {10.55, 59.45}, pumpRoom)
-        addIndustrialWallPanels("Pump_Room_End", "X", 12, 58, 16, {110.55, 157.45}, pumpRoom, {{27, 43}})
-        addWallMountedServiceLights("Pump_Room", "Z", {120, 148}, {10.3, 59.7}, pumpRoom)
-        addWalkwaySafetyLines("Pump_Room", "Z", Vector3.new(35, -10.5, 134), 45, pumpRoom)
-    end
-
-    local west = world:FindFirstChild("West_Service_Route")
-    local westChamber = west and west:FindFirstChild("West_Valve_Chamber")
-    if westChamber then
-        addIndustrialWallPanels("West_Chamber_Side", "Z", -126, -90, 16, {-209.45}, westChamber)
-        addIndustrialWallPanels("West_Chamber_End", "X", -205, -165, 16, {-130.45, -85.45}, westChamber)
-        addWalkwaySafetyLines("West_Chamber", "X", Vector3.new(-185, -10.5, -108), 45, westChamber)
-        addIndustrialSign("West_Valve_ID", "WEST PRESSURE  /  01", Vector3.new(-209.45, -3.1, -108), Vector3.new(0.18, 2.8, 10), Enum.NormalId.Right, westChamber)
-    end
-
-    addPumpRoomVisuals()
+    addMainTunnelGate()
 end
 
--- Flashlight inventory was intentionally removed: the sewer lighting is bright enough.
+local function buildWestRoute()
+    local branch = buildTunnelZ("West_Collector_Tunnel", -55, -17, -137, 30, world, {-42, -91, -122})
+    -- Water flows directly from the main concourse into the collector tunnel.
+    local hall = buildPumpHall()
+    addIndustrialSign("West_Collector_ID", "COLLECTOR  /  PUMP ACCESS", Vector3.new(-70.0, -2.2, -18), Vector3.new(0.22, 3, 10), Enum.NormalId.Right, branch)
+    return branch, hall
+end
+
+local function buildEastRoute()
+    local branch = buildTunnelZ("East_Service_Tunnel", 65, 17, 137, 30, world, {45, 92, 121})
+    -- A large cross-gallery receives the east branch through an opening in its south wall.
+    local cross = buildTunnelX("East_Transfer_Gallery", 50, 190, 150, 34, world, {{65, 30}}, {}, {82, 142})
+    addEndWallX("East_Transfer_West_End", 50, 150, 17, cross)
+    local hall = buildSluiceHall()
+    addIndustrialSign("East_Service_ID", "EAST SERVICE  /  LINE 02", Vector3.new(77.5, -2.2, 18), Vector3.new(0.22, 3, 10), Enum.NormalId.Left, branch)
+    return branch, cross, hall
+end
+
+local function buildEntrance()
+    local entry = newModel("Sewer_Entry_Portal")
+    -- The entry platform is on the right-hand dry walkway, not over the river.
+    part("Entry_Heavy_Grate", Vector3.new(12, 0.32, 8), Vector3.new(-125, -9.82, 11.5), Enum.Material.DiamondPlate, C.steelMid, entry)
+    for x = -130, -120, 1 do
+        part("Entry_Grate_Rib", Vector3.new(0.09, 0.06, 7.7), Vector3.new(x, -9.62, 11.5), Enum.Material.Metal, C.steelBright, entry, 0, false)
+    end
+    for _, z in ipairs({7.2, 15.8}) do
+        part("Entry_Railing", Vector3.new(12, 1.2, 0.18), Vector3.new(-125, -8.95, z), Enum.Material.Metal, C.steel, entry)
+        for _, x in ipairs({-130, -125, -120}) do
+            part("Entry_Railing_Post", Vector3.new(0.22, 1.5, 0.22), Vector3.new(x, -9.1, z), Enum.Material.Metal, C.steelMid, entry)
+        end
+    end
+    addIndustrialSign("Entry_Portal_ID", "ACCESS 04  /  DRAINAGE", Vector3.new(-130, -2.1, -16.2), Vector3.new(11, 3, 0.25), Enum.NormalId.Front, entry)
+end
+
+local function placePlayer(player, character, spawn)
+    local humanoid = character:WaitForChild("Humanoid", 10)
+    local root = character:WaitForChild("HumanoidRootPart", 10)
+    if humanoid then
+        humanoid.UseJumpPower = true
+        humanoid.JumpPower = 42
+        humanoid.JumpHeight = 5
+        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
+    end
+    if root then
+        character:PivotTo(spawn.CFrame * CFrame.new(0, 3.1, 0))
+    else
+        warn("[Horror Game] Character root not ready for spawn placement.")
+    end
+end
+
+-- Clear only the old sewer's broad Terrain area, including the previous river beds.
+pcall(function()
+    Workspace.Terrain:FillBlock(CFrame.new(40, -8, 0), Vector3.new(760, 34, 520), Enum.Material.Air)
+end)
 
 configureLighting()
-buildMainTunnel()
-buildWestServiceRoute()
-buildBranchAndPumpRoom()
-buildEastDrainExtension()
-buildSecurityGate()
-buildEntrance()
-buildVisualOverhaul()
 
--- A solid but invisible spawn pad sits flush with the dry right-hand walkway.
--- The earlier script removed the template spawn and failed before creating this one.
+-- COMPLETE NEW MAP LAYOUT:
+-- 1) Huge arched main concourse
+-- 2) West collector branch and full-size pump hall
+-- 3) East service branch, transfer gallery and monumental sluice hall
+buildMainSewer()
+buildWestRoute()
+buildEastRoute()
+buildEntrance()
+
 local spawn = Instance.new("SpawnLocation")
 spawn.Name = "SewerSpawn"
--- Rotated so the character faces down the main tunnel (+X); dimensions are
--- swapped to keep the pad inside the five-stud-wide dry walkway.
-spawn.Size = Vector3.new(4, 1, 8)
-spawn.Position = Vector3.new(-88, 0, 6.5)
-spawn.CFrame = CFrame.new(-88, 0, 6.5) * CFrame.Angles(0, math.rad(-90), 0)
+spawn.Size = Vector3.new(6, 1, 8)
+spawn.CFrame = CFrame.new(-125, 0.5, 11.5) * CFrame.Angles(0, math.rad(-90), 0)
 spawn.Anchored = true
 spawn.Neutral = true
 spawn.Duration = 0
@@ -1343,82 +883,34 @@ spawn.CanTouch = true
 spawn.CanQuery = true
 spawn.Parent = world
 
-local function configureSewerPlayer(player, character)
-    local humanoid = character:WaitForChild("Humanoid", 10)
-    local root = character:WaitForChild("HumanoidRootPart", 10)
-
-    if humanoid then
-        humanoid.UseJumpPower = true
-        humanoid.JumpPower = 42
-        humanoid.JumpHeight = 5
-        humanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
-    end
-
-    -- Wait for the root part before moving an already-spawned character or a
-    -- freshly loaded character onto the dry walkway, facing down the main tunnel.
-    if root then
-        character:PivotTo(spawn.CFrame * CFrame.new(0, 3.2, 0))
-    else
-        warn("[Horror Game] Character root was not ready for sewer spawn placement.")
-    end
-end
-
-local function bindSewerPlayer(player)
+local function bindPlayer(player)
     player.CharacterAdded:Connect(function(character)
-        task.wait(0.15)
-        configureSewerPlayer(player, character)
+        task.wait(0.2)
+        placePlayer(player, character, spawn)
     end)
-
     if player.Character then
-        task.spawn(configureSewerPlayer, player, player.Character)
+        task.spawn(placePlayer, player, player.Character, spawn)
     end
 end
 
 for _, player in ipairs(Players:GetPlayers()) do
-    bindSewerPlayer(player)
+    bindPlayer(player)
 end
-Players.PlayerAdded:Connect(bindSewerPlayer)
+Players.PlayerAdded:Connect(bindPlayer)
 
--- SpawnLocation adds a default star decal. Delete all appearance children so it stays invisible.
-for _, child in ipairs(spawn:GetDescendants()) do
-    if child:IsA("Decal") or child:IsA("Texture") then
-        child:Destroy()
-    end
-end
-for _, child in ipairs(spawn:GetChildren()) do
-    if child:IsA("Decal") or child:IsA("Texture") then
-        child:Destroy()
-    end
-end
-
--- The old invalid ID was reported by Studio as a type mismatch. Remove any leftover
--- instance that still requests it, without affecting unrelated assets.
+-- Remove the old unsupported/mismatched prototype reference if any old object remains.
 for _, instance in ipairs(game:GetDescendants()) do
-    if instance:IsA("Sound") then
-        if string.find(instance.SoundId, "203785492", 1, true) then
-            instance.SoundId = ""
-        end
-    elseif instance:IsA("Decal") or instance:IsA("Texture") then
-        if string.find(instance.Texture, "203785492", 1, true) then
-            instance.Texture = ""
-        end
-    elseif instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
-        if string.find(instance.Image, "203785492", 1, true) then
-            instance.Image = ""
-        end
-    elseif instance:IsA("MeshPart") then
-        if string.find(instance.MeshId, "203785492", 1, true) then
-            instance:Destroy()
-        end
-    elseif instance:IsA("SpecialMesh") then
-        if string.find(instance.MeshId, "203785492", 1, true) then
-            instance.MeshId = ""
-        end
-    elseif instance:IsA("Animation") then
-        if string.find(instance.AnimationId, "203785492", 1, true) then
-            instance.AnimationId = ""
-        end
+    if instance:IsA("Sound") and string.find(instance.SoundId, "203785492", 1, true) then
+        instance.SoundId = ""
+    elseif instance:IsA("Decal") and string.find(instance.Texture, "203785492", 1, true) then
+        instance.Texture = ""
+    elseif instance:IsA("Texture") and string.find(instance.Texture, "203785492", 1, true) then
+        instance.Texture = ""
+    elseif instance:IsA("ImageLabel") and string.find(instance.Image, "203785492", 1, true) then
+        instance.Image = ""
+    elseif instance:IsA("ImageButton") and string.find(instance.Image, "203785492", 1, true) then
+        instance.Image = ""
     end
 end
 
-print("[Horror Game] Sewer VISUAL V14 loaded: modern industrial tunnel lining, reinforced steel crossings, architectural LED lighting and detailed pump-station dressing.")
+print("[Horror Game] Sewer V15 COMPLETE REBUILD loaded: monumental arched concourse, west pump hall, east transfer gallery and sluice hall, new water channels, bridges, steelwork and architectural lighting.")
