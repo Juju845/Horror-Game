@@ -186,20 +186,8 @@ local function buildClinic()
         makeWall("South_Room_Divider_B", Vector3.new(1.5, 18, 25), Vector3.new(x, 9, 21), clinic)
     end
 
-    -- Door frames and old doors along the corridor.
-    for _, x in ipairs({-45, -15, 15, 45}) do
-        for _, z in ipairs({-8, 8}) do
-            local door = makePart(
-                "Old_Clinic_Door",
-                Vector3.new(5.5, 11, 0.65),
-                Vector3.new(x, 5.7, z),
-                Enum.Material.Wood,
-                Color3.fromRGB(48, 52, 49),
-                clinic
-            )
-            door:SetAttribute("DoorState", "Closed")
-        end
-    end
+    -- Room entrances are left open in this first blockout.
+    -- Interactive doors will be added with the door and key system.
 
     -- Dirty window panels on the long exterior walls.
     for _, x in ipairs({-48, -24, 0, 24, 48}) do
