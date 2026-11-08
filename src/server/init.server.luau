@@ -648,6 +648,8 @@ local function buildWestServiceRoute()
     buildChannelFloor("West_Turn", "X", Vector3.new(-100, -10.5, -108), 120, 18, 8, route)
     part("West_Turn_North_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -99), Enum.Material.Concrete, concrete, route)
     part("West_Turn_South_Wall", Vector3.new(120, 7, 1), Vector3.new(-100, -6.5, -117), Enum.Material.Concrete, concrete, route)
+    -- The outer east edge of the elbow joins the short side wall of the approach.
+    part("West_Turn_East_Side_Wall", Vector3.new(1, 7, 19), Vector3.new(-40, -6.5, -107.5), Enum.Material.Concrete, concrete, route)
     buildArch("X", -100, -108, -3, 7.5, 120, route, "West_Turn", Enum.Material.Concrete, concreteDark, 1.55)
     local turnRibs = {}
     for x = -152, -48, 16 do
@@ -704,6 +706,8 @@ local function buildEastDrainExtension()
     -- from the long east leg, not a wall directly in front of the player.
     part("East_Turn_North_Wall", Vector3.new(101, 7, 1), Vector3.new(94.5, -6.5, 253), Enum.Material.Concrete, concrete, route)
     part("East_Turn_South_Wall", Vector3.new(119, 7, 1), Vector3.new(85.5, -6.5, 271), Enum.Material.Concrete, concrete, route)
+    -- Continue the outside wall around the corner so the player cannot step off into open space.
+    part("East_Turn_West_Side_Wall", Vector3.new(1, 7, 18), Vector3.new(26, -6.5, 262), Enum.Material.Concrete, concrete, route)
     buildArch("X", 85.5, 262, -3, 7.5, 119, route, "East_Turn", Enum.Material.Concrete, concreteDark, 1.55)
     local turnRibs = {}
     for x = 32, 144, 16 do
