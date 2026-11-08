@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V5
+    HORROR GAME - SEWER LEVEL V7
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -799,8 +799,8 @@ end
 local spawn = Instance.new("SpawnLocation")
 spawn.Name = "SewerSpawn"
 spawn.Size = Vector3.new(1, 0.2, 1)
-spawn.Position = Vector3.new(-108, -9.58 + WORLD_Y_OFFSET, 0)
-spawn.CFrame = CFrame.new(-108, -9.58 + WORLD_Y_OFFSET, 0) * CFrame.Angles(0, math.rad(-90), 0)
+spawn.Position = Vector3.new(-108, -9.58 + WORLD_Y_OFFSET, 6.5)
+spawn.CFrame = CFrame.new(-108, -9.58 + WORLD_Y_OFFSET, 6.5) * CFrame.Angles(0, math.rad(-90), 0)
 spawn.Anchored = true
 spawn.Neutral = true
 spawn.Duration = 0
@@ -864,4 +864,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V6 loaded: Terrain Water, continuous channels, open 90-degree elbows, sealed tunnel ends and improved industrial lighting. No flashlight.")
+print("[Horror Game] Sewer V7 loaded: recessed Terrain-water channels, clear junctions, sealed ends, detailed pump room and no flashlight.")
