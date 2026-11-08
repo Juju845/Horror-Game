@@ -1,5 +1,5 @@
 --[[
-    HORROR GAME - SEWER LEVEL V13
+    HORROR GAME - SEWER LEVEL V14
     A fully enclosed, walkable sewer with an arched main tunnel, branch tunnel,
     pump room, service details, ceiling lights with animated dirty water and no flashlight.
 ]]
@@ -280,11 +280,11 @@ end
 
 local function configureLighting()
     Lighting.ClockTime = 0.35
-    Lighting.Brightness = 2.45
+    Lighting.Brightness = 2.25
     Lighting.GlobalShadows = true
-    Lighting.Ambient = Color3.fromRGB(119, 122, 113)
-    Lighting.OutdoorAmbient = Color3.fromRGB(91, 96, 88)
-    Lighting.FogColor = Color3.fromRGB(79, 84, 77)
+    Lighting.Ambient = Color3.fromRGB(91, 102, 103)
+    Lighting.OutdoorAmbient = Color3.fromRGB(66, 77, 79)
+    Lighting.FogColor = Color3.fromRGB(66, 78, 80)
     Lighting.FogStart = 175
     Lighting.FogEnd = 620
     Lighting.EnvironmentDiffuseScale = 0.56
@@ -322,7 +322,7 @@ local function configureLighting()
     color.Brightness = 0.025
     color.Contrast = 0.09
     color.Saturation = -0.08
-    color.TintColor = Color3.fromRGB(229, 231, 220)
+    color.TintColor = Color3.fromRGB(207, 221, 218)
     color.Parent = Lighting
 
     local bloom = Instance.new("BloomEffect")
@@ -333,12 +333,12 @@ local function configureLighting()
     bloom.Parent = Lighting
 end
 
-local concrete = Color3.fromRGB(101, 103, 98)
-local concreteDark = Color3.fromRGB(63, 68, 65)
-local concreteEdge = Color3.fromRGB(98, 101, 95)
-local metal = Color3.fromRGB(54, 61, 59)
-local rust = Color3.fromRGB(73, 51, 42)
-local yellow = Color3.fromRGB(176, 140, 61)
+local concrete = Color3.fromRGB(83, 91, 91)
+local concreteDark = Color3.fromRGB(43, 52, 54)
+local concreteEdge = Color3.fromRGB(116, 124, 117)
+local metal = Color3.fromRGB(39, 49, 51)
+local rust = Color3.fromRGB(91, 57, 43)
+local yellow = Color3.fromRGB(213, 165, 64)
 
 -- Creates a barrel-vault roof. The long dimension follows the tunnel axis;
 -- each angled section overlaps its neighbours to form a continuous arch.
@@ -383,30 +383,47 @@ local function buildArchRibs(axis, centerX, centerZ, centerY, radius, positions,
 end
 
 local function addCeilingLamp(position, parent, name, color, brightness, range)
-    local fixture = part(name .. "_Housing", Vector3.new(3.8, 0.35, 1.45), position, Enum.Material.Metal, metal, parent)
-    local lens = part(name .. "_Lens", Vector3.new(3.15, 0.13, 0.92), Vector3.new(position.X, position.Y - 0.22, position.Z), Enum.Material.Neon, color, parent)
-    lens.CanCollide = false
-    lens.CastShadow = false
+    local housing = part(
+        name .. "_Architectural_Housing",
+        Vector3.new(4.6, 0.42, 1.75),
+        position,
+        Enum.Material.Metal,
+        Color3.fromRGB(32, 41, 43),
+        parent
+    )
 
-    -- Broad downward light gives a soft fluorescent pool instead of a harsh orb.
-    local surface = Instance.new("SurfaceLight")
-    surface.Name = name .. "_Downward_Light"
-    surface.Face = Enum.NormalId.Bottom
-    surface.Color = color
-    surface.Brightness = (brightness or 1.7) * 0.82
-    surface.Range = (range or 30) * 0.9
-    surface.Angle = 105
-    surface.Shadows = true
-    surface.Parent = lens
+    -- Twin recessed LED bars replace the old single glowing slab.
+    for _, offset in ipairs({-0.42, 0.42}) do
+        local lens = part(
+            name .. "_LED_Diffuser",
+            Vector3.new(3.9, 0.09, 0.22),
+            Vector3.new(position.X, position.Y - 0.24, position.Z + offset),
+            Enum.Material.Neon,
+            color,
+            parent
+        )
+        lens.CanCollide = false
+        lens.CastShadow = false
+
+        local surface = Instance.new("SurfaceLight")
+        surface.Name = name .. "_Soft_Downlight"
+        surface.Face = Enum.NormalId.Bottom
+        surface.Color = color
+        surface.Brightness = (brightness or 1.7) * 0.7
+        surface.Range = (range or 30) * 0.82
+        surface.Angle = 110
+        surface.Shadows = true
+        surface.Parent = lens
+    end
 
     local fill = Instance.new("PointLight")
-    fill.Name = name .. "_Soft_Fill"
+    fill.Name = name .. "_Ambient_Fill"
     fill.Color = color
-    fill.Brightness = 0.3
-    fill.Range = 14
+    fill.Brightness = 0.18
+    fill.Range = 12
     fill.Shadows = false
-    fill.Parent = lens
-    return fixture
+    fill.Parent = housing
+    return housing
 end
 
 -- Builds a recessed channel floor: two dry walking ledges and a lowered
@@ -477,36 +494,84 @@ local function addChannelBridge(name, axis, center, parent)
         or Vector3.new(8.8, 0.12, 6.2)
 
     local deck = part(
-        name .. "_Maintenance_Crossing",
+        name .. "_Industrial_Grating_Deck",
         deckSize,
         Vector3.new(center.X, -10.0, center.Z),
         Enum.Material.DiamondPlate,
-        Color3.fromRGB(76, 84, 79),
+        Color3.fromRGB(57, 67, 68),
         parent
     )
-    deck.Reflectance = 0.08
+    deck.Reflectance = 0.12
 
-    -- Anti-slip ribs run across the bridge, not along the direction of travel.
-    for index = 1, 5 do
-        local offset = (index - 3) * 1.05
-        local ribSize
-        local ribPosition
+    -- Closely spaced steel ribs give the crossing a real industrial-grating look.
+    for index = 1, 13 do
+        local offset = (index - 7) * 0.47
+        local ribSize, ribPosition
         if axis == "X" then
-            ribSize = Vector3.new(0.09, 0.08, 8.45)
-            ribPosition = Vector3.new(center.X + offset, -9.91, center.Z)
+            ribSize = Vector3.new(0.075, 0.045, 8.45)
+            ribPosition = Vector3.new(center.X + offset, -9.925, center.Z)
         else
-            ribSize = Vector3.new(8.45, 0.08, 0.09)
-            ribPosition = Vector3.new(center.X, -9.91, center.Z + offset)
+            ribSize = Vector3.new(8.45, 0.045, 0.075)
+            ribPosition = Vector3.new(center.X, -9.925, center.Z + offset)
         end
-        local rib = part(
-            name .. "_Bridge_AntiSlip_Rib",
-            ribSize,
-            ribPosition,
-            Enum.Material.Metal,
-            Color3.fromRGB(111, 116, 106),
-            parent
-        )
+        local rib = part(name .. "_Grating_Rib", ribSize, ribPosition, Enum.Material.Metal, Color3.fromRGB(128, 137, 130), parent)
         rib.CanCollide = false
+    end
+
+    -- Two heavy cross-girders are visible below the deck.
+    for _, alongOffset in ipairs({-2.65, 2.65}) do
+        local girderSize, girderPosition
+        if axis == "X" then
+            girderSize = Vector3.new(0.24, 0.32, 8.45)
+            girderPosition = Vector3.new(center.X + alongOffset, -10.34, center.Z)
+        else
+            girderSize = Vector3.new(8.45, 0.32, 0.24)
+            girderPosition = Vector3.new(center.X, -10.34, center.Z + alongOffset)
+        end
+        part(name .. "_Under_Deck_Girder", girderSize, girderPosition, Enum.Material.Metal, metal, parent)
+    end
+
+    -- Low twin handrails frame both sides without narrowing the walking deck.
+    for _, side in ipairs({-1, 1}) do
+        for _, alongOffset in ipairs({-2.55, 2.55}) do
+            local postPosition
+            if axis == "X" then
+                postPosition = Vector3.new(center.X + alongOffset, -9.15, center.Z + side * 4.18)
+            else
+                postPosition = Vector3.new(center.X + side * 4.18, -9.15, center.Z + alongOffset)
+            end
+            part(name .. "_Handrail_Post", Vector3.new(0.18, 1.55, 0.18), postPosition, Enum.Material.Metal, Color3.fromRGB(45, 55, 55), parent)
+        end
+
+        local upperSize, upperPosition, lowerSize, lowerPosition
+        if axis == "X" then
+            upperSize = Vector3.new(5.35, 0.16, 0.16)
+            upperPosition = Vector3.new(center.X, -8.38, center.Z + side * 4.18)
+            lowerSize = Vector3.new(5.35, 0.11, 0.11)
+            lowerPosition = Vector3.new(center.X, -9.15, center.Z + side * 4.18)
+        else
+            upperSize = Vector3.new(0.16, 0.16, 5.35)
+            upperPosition = Vector3.new(center.X + side * 4.18, -8.38, center.Z)
+            lowerSize = Vector3.new(0.11, 0.11, 5.35)
+            lowerPosition = Vector3.new(center.X + side * 4.18, -9.15, center.Z)
+        end
+        part(name .. "_Upper_Handrail", upperSize, upperPosition, Enum.Material.Metal, Color3.fromRGB(91, 105, 101), parent)
+        part(name .. "_Lower_Handrail", lowerSize, lowerPosition, Enum.Material.Metal, Color3.fromRGB(58, 70, 67), parent)
+    end
+
+    -- Amber deck markers make crossings visible from a distance.
+    for _, endOffset in ipairs({-2.9, 2.9}) do
+        local markerSize, markerPosition
+        if axis == "X" then
+            markerSize = Vector3.new(0.16, 0.08, 0.7)
+            markerPosition = Vector3.new(center.X + endOffset, -9.91, center.Z)
+        else
+            markerSize = Vector3.new(0.7, 0.08, 0.16)
+            markerPosition = Vector3.new(center.X, -9.91, center.Z + endOffset)
+        end
+        local marker = part(name .. "_Amber_Crossing_Marker", markerSize, markerPosition, Enum.Material.Neon, yellow, parent)
+        marker.CanCollide = false
+        marker.CastShadow = false
     end
 end
 
@@ -1091,4 +1156,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V13 loaded: high dirty-water level, full-height retaining walls, maintenance bridges over every long water section and jumping enabled.")
+print("[Horror Game] Sewer VISUAL V14 loaded: modern industrial tunnel lining, reinforced steel crossings, architectural LED lighting and detailed pump-station dressing.")
