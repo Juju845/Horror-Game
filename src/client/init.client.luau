@@ -203,7 +203,7 @@ local function setupCharacter(character)
         currentHumanoid.WalkSpeed = WALK_SPEED
         currentHumanoid.UseJumpPower = true
         -- Players may jump out of the recessed water channel and back onto the walkway.
-        currentHumanoid.JumpPower = 40
+        currentHumanoid.JumpPower = 42
         currentHumanoid.JumpHeight = 5
         currentHumanoid:SetStateEnabled(Enum.HumanoidStateType.Jumping, true)
         currentHumanoid.AutoRotate = true
