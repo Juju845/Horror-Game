@@ -821,7 +821,7 @@ local function buildWestRoute()
 
     -- Short lined water connector bridges the 12-stud offset between the
     -- branch channel mouth and the main concourse river.
-    part("West_T_Junction_Riverbed", Vector3.new(10, 1, 24), Vector3.new(-55, -12.5, -8.5), Enum.Material.Slate, C.concreteDark, world)
+    part("West_T_Junction_Riverbed", Vector3.new(10, 1, 12), Vector3.new(-55, -12.5, -11), Enum.Material.Slate, C.concreteDark, world)
     addWater("West_T_Junction_Water", "Z", -55, -8.5, 24, 10, world)
     addRiverWallsZ("West_T_Junction", -17, -5, -55, 10, world, {})
 
@@ -835,7 +835,7 @@ local function buildEastRoute()
 
     -- Water and the lowered bed continue through the short T-junction into
     -- the cross-gallery; the tunnel side walls stop at the actual doorway.
-    part("East_T_Junction_Riverbed", Vector3.new(10, 1, 18), Vector3.new(65, -12.5, 142), Enum.Material.Slate, C.concreteDark, world)
+    part("East_T_Junction_Riverbed", Vector3.new(10, 1, 8), Vector3.new(65, -12.5, 141), Enum.Material.Slate, C.concreteDark, world)
     addWater("East_T_Junction_Water", "Z", 65, 142, 20, 10, world)
     addRiverWallsZ("East_T_Junction", 137, 150, 65, 10, world, {})
 
