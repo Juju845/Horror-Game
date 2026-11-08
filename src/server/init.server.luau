@@ -39,7 +39,7 @@ local function makeModel(name)
 end
 
 local function setAtmosphere()
-    Lighting.Technology = Enum.Technology.Future
+    -- Technology is configured in Studio; runtime scripts cannot change this property.
     Lighting.ClockTime = 1.4
     Lighting.Brightness = 1.15
     Lighting.GlobalShadows = true
