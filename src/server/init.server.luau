@@ -103,18 +103,20 @@ local function addFlowingWater(name, axis, center, length, width, parent, flowDi
         size,
         center,
         Enum.Material.Water,
-        Color3.fromRGB(65, 69, 48),
+        Color3.fromRGB(77, 70, 47),
         parent,
-        0.12
+        0.08
     )
     water.CanCollide = false
     water.CanTouch = false
+    water.Reflectance = 0.18
 
+    -- A Creator Store flowing-water recording replaces the denied sample ID.
     local ambience = Instance.new("Sound")
     ambience.Name = name .. "_Flow_Ambience"
-    ambience.SoundId = "rbxassetid://6564308795"
-    ambience.Volume = 0.12
-    ambience.PlaybackSpeed = 0.78
+    ambience.SoundId = "rbxassetid://9120550180"
+    ambience.Volume = 0.1
+    ambience.PlaybackSpeed = 0.82
     ambience.Looped = true
     ambience.RollOffMode = Enum.RollOffMode.InverseTapered
     ambience.RollOffMinDistance = 10
@@ -138,9 +140,9 @@ local function addFlowingWater(name, axis, center, length, width, parent, flowDi
         end
 
         if axis == "X" then
-            streakSize = Vector3.new(6 + (index % 3) * 2, 0.025, 0.11 + (index % 2) * 0.07)
+            streakSize = Vector3.new(4.5 + (index % 3) * 1.6, 0.018, 0.07 + (index % 2) * 0.035)
         else
-            streakSize = Vector3.new(0.11 + (index % 2) * 0.07, 0.025, 6 + (index % 3) * 2)
+            streakSize = Vector3.new(0.07 + (index % 2) * 0.035, 0.018, 4.5 + (index % 3) * 1.6)
         end
 
         startPosition = positionAt(along)
@@ -149,9 +151,9 @@ local function addFlowingWater(name, axis, center, length, width, parent, flowDi
             streakSize,
             Vector3.new(startPosition.X, startPosition.Y - WORLD_Y_OFFSET, startPosition.Z),
             Enum.Material.SmoothPlastic,
-            Color3.fromRGB(126, 129, 99),
+            Color3.fromRGB(111, 100, 69),
             parent,
-            0.42
+            0.62
         )
         streak.CanCollide = false
         streak.CanTouch = false
@@ -314,10 +316,58 @@ local function buildMainTunnel()
     -- Pipes are fixed to the walls with brackets at regular intervals.
     for _, side in ipairs({-1, 1}) do
         local pipeZ = side * 6.75
-        cylinder("Main_Rusted_Service_Pipe", 306, 0.85, Vector3.new(40, -5.2, pipeZ), Enum.Material.Metal, rust, tunnel)
-        cylinder("Main_Upper_Service_Pipe", 306, 0.38, Vector3.new(40, -3.6, side * 7.05), Enum.Material.Metal, metal, tunnel)
+        local mainPipe = cylinder("Main_Rusted_Service_Pipe", 306, 0.66, Vector3.new(40, -5.2, pipeZ), Enum.Material.CorrodedMetal, Color3.fromRGB(83, 57, 43), tunnel)
+        local upperPipe = cylinder("Main_Upper_Service_Pipe", 306, 0.3, Vector3.new(40, -3.6, side * 7.05), Enum.Material.Metal, metal, tunnel)
+        mainPipe.Reflectance = 0.12
+        upperPipe.Reflectance = 0.08
         for x = -104, 184, 16 do
             part("Main_Pipe_Anchor", Vector3.new(0.85, 1.45, 1.25), Vector3.new(x, -5.2, side * 7.25), Enum.Material.Metal, metal, tunnel)
+        end
+
+        -- Repeated bolted flange joints make the long pipe runs read as industrial pipework.
+        for x = -80, 160, 48 do
+            local flange = cylinder("Main_Pipe_Flange", 0.2, 0.93, Vector3.new(x, -5.2, pipeZ), Enum.Material.CorrodedMetal, Color3.fromRGB(72, 54, 43), tunnel)
+            flange.Reflectance = 0.1
+            for boltIndex = 0, 3 do
+                local angle = math.rad(boltIndex * 90)
+                local bolt = part(
+                    "Main_Flange_Bolt",
+                    Vector3.new(0.12, 0.12, 0.12),
+                    Vector3.new(x, -5.2 + math.sin(angle) * 0.39, pipeZ + math.cos(angle) * 0.39),
+                    Enum.Material.Metal,
+                    Color3.fromRGB(130, 128, 111),
+                    tunnel
+                )
+                bolt.Shape = Enum.PartType.Ball
+            end
+        end
+    end
+
+    -- Moisture lines and expansion joints break up the uninterrupted concrete wall faces.
+    for x = -104, 184, 24 do
+        for _, side in ipairs({-1, 1}) do
+            local seam = part(
+                "Wall_Expansion_Joint",
+                Vector3.new(0.12, 6.6, 0.045),
+                Vector3.new(x, -6.5, side * 7.47),
+                Enum.Material.Slate,
+                Color3.fromRGB(56, 61, 57),
+                tunnel
+            )
+            seam.CanCollide = false
+
+            if x % 48 == 8 then
+                local dampPatch = part(
+                    "Wall_Damp_Stain",
+                    Vector3.new(3.5, 1.7, 0.035),
+                    Vector3.new(x + 5, -8.0, side * 7.47),
+                    Enum.Material.Slate,
+                    Color3.fromRGB(64, 69, 53),
+                    tunnel,
+                    0.28
+                )
+                dampPatch.CanCollide = false
+            end
         end
     end
 
@@ -417,7 +467,8 @@ local function buildBranchAndPumpRoom()
     end
 
     for _, x in ipairs({27.2, 42.8}) do
-        cylinder("Branch_Rusted_Pipe", 96, 0.75, Vector3.new(x, -5.2, 60), Enum.Material.Metal, rust, branch, Vector3.new(0, 90, 0))
+        local branchPipe = cylinder("Branch_Rusted_Pipe", 96, 0.6, Vector3.new(x, -5.2, 60), Enum.Material.CorrodedMetal, Color3.fromRGB(83, 57, 43), branch, Vector3.new(0, 90, 0))
+        branchPipe.Reflectance = 0.1
         for z = 18, 102, 18 do
             part("Branch_Pipe_Bracket", Vector3.new(1.5, 1.25, 0.9), Vector3.new(x, -5.2, z), Enum.Material.Metal, metal, branch)
         end
@@ -445,15 +496,42 @@ local function buildBranchAndPumpRoom()
 
     addFlowingWater("Pump_Room_Channel", "X", Vector3.new(35, -9.94, 133), 42, 5, room, 1)
     part("Pump_Base", Vector3.new(13, 1.2, 10), Vector3.new(35, -9.35, 142), Enum.Material.Metal, rust, room)
-    cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(35, -4.1, 142), Enum.Material.Metal, Color3.fromRGB(67, 76, 69), room, Vector3.new(0, 0, 90))
-    part("Pump_Tank_Cap", Vector3.new(7.8, 0.45, 7.8), Vector3.new(35, 0.95, 142), Enum.Material.Metal, rust, room)
-    cylinder("Pump_Outlet_Pipe", 13, 1.0, Vector3.new(44, -2.5, 142), Enum.Material.Metal, rust, room)
-    cylinder("Pump_Inlet_Pipe", 15, 0.9, Vector3.new(35, -2.5, 150), Enum.Material.Metal, metal, room, Vector3.new(0, 90, 0))
+    local filterTank = cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(35, -4.1, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(68, 75, 68), room, Vector3.new(0, 0, 90))
+    filterTank.Reflectance = 0.12
+    part("Pump_Tank_Cap", Vector3.new(7.8, 0.45, 7.8), Vector3.new(35, 0.95, 142), Enum.Material.CorrodedMetal, rust, room)
+
+    -- Tank collars, inspection plate and rivets.
+    for _, y in ipairs({-7.2, -1.2}) do
+        local collar = cylinder("Pump_Tank_Collar", 0.28, 7.9, Vector3.new(35, y, 142), Enum.Material.Metal, Color3.fromRGB(75, 81, 73), room, Vector3.new(0, 0, 90))
+        collar.Reflectance = 0.12
+    end
+    part("Pump_Tank_Inspection_Plate", Vector3.new(0.3, 2.5, 2.2), Vector3.new(39.0, -4.1, 142), Enum.Material.DiamondPlate, metal, room)
+
+    -- Pump motor and coupling sit on a bolted steel plinth beside the filter tank.
+    part("Pump_Motor_Platform", Vector3.new(8.5, 0.75, 5.5), Vector3.new(47.2, -9.35, 142), Enum.Material.Metal, rust, room)
+    part("Pump_Motor_Housing", Vector3.new(5.5, 3.0, 3.8), Vector3.new(47.2, -7.45, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(58, 67, 61), room)
+    cylinder("Pump_Motor_Fan_End", 0.35, 3.2, Vector3.new(50.1, -7.45, 142), Enum.Material.Metal, metal, room)
+    cylinder("Pump_Motor_Coupling", 2.4, 1.3, Vector3.new(42.9, -7.1, 142), Enum.Material.Metal, rust, room)
+    for boltX = 43, 50, 2 do
+        local motorBolt = part("Pump_Motor_Fixing_Bolt", Vector3.new(0.16, 0.16, 0.16), Vector3.new(boltX, -8.9, 144.2), Enum.Material.Metal, Color3.fromRGB(143, 139, 121), room)
+        motorBolt.Shape = Enum.PartType.Ball
+    end
+
+    cylinder("Pump_Outlet_Pipe", 13, 0.8, Vector3.new(44, -2.5, 142), Enum.Material.CorrodedMetal, rust, room)
+    cylinder("Pump_Inlet_Pipe", 15, 0.72, Vector3.new(35, -2.5, 150), Enum.Material.Metal, metal, room, Vector3.new(0, 90, 0))
 
     -- Valve wheel and control panel are mounted close to the rear-right wall.
     cylinder("Valve_Hub", 1.2, 2.6, Vector3.new(57.9, -4.1, 147), Enum.Material.Metal, rust, room, Vector3.new(0, 90, 0))
     part("Valve_Wheel_Vertical", Vector3.new(0.35, 4.2, 0.35), Vector3.new(57.2, -4.1, 147), Enum.Material.Metal, yellow, room)
     part("Valve_Wheel_Horizontal", Vector3.new(0.35, 0.35, 4.2), Vector3.new(57.2, -4.1, 147), Enum.Material.Metal, yellow, room)
+
+    -- A small pressure gauge and wall-mounted control cabinet give the pump a readable purpose.
+    part("Pump_Control_Cabinet", Vector3.new(0.55, 4.2, 5.5), Vector3.new(59.25, -5.2, 127), Enum.Material.DiamondPlate, Color3.fromRGB(48, 58, 54), room)
+    part("Pump_Cabinet_Display", Vector3.new(0.12, 1.1, 2.2), Vector3.new(58.92, -4.1, 127), Enum.Material.Neon, Color3.fromRGB(91, 140, 111), room).CanCollide = false
+    for index = 1, 3 do
+        local indicator = part("Pump_Status_Indicator", Vector3.new(0.13, 0.2, 0.2), Vector3.new(58.9, -5.0, 125.7 + index * 0.65), Enum.Material.Neon, index == 1 and Color3.fromRGB(178, 58, 43) or Color3.fromRGB(130, 151, 104), room)
+        indicator.CanCollide = false
+    end
 
     local emergency = part("Pump_Red_Emergency_Lamp", Vector3.new(3.2, 0.25, 1.0), Vector3.new(35, 3.25, 128), Enum.Material.Neon, Color3.fromRGB(185, 56, 43), room)
     emergency.CanCollide = false
@@ -656,4 +734,34 @@ for _, child in ipairs(spawn:GetChildren()) do
     end
 end
 
-print("[Horror Game] Sewer V4 loaded: longer connected routes, 90-degree turns, flowing muddy water. Flashlight removed.")
+-- The old invalid ID was reported by Studio as a type mismatch. Remove any leftover
+-- instance that still requests it, without affecting unrelated assets.
+for _, instance in ipairs(game:GetDescendants()) do
+    if instance:IsA("Sound") then
+        if string.find(instance.SoundId, "203785492", 1, true) then
+            instance.SoundId = ""
+        end
+    elseif instance:IsA("Decal") or instance:IsA("Texture") then
+        if string.find(instance.Texture, "203785492", 1, true) then
+            instance.Texture = ""
+        end
+    elseif instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
+        if string.find(instance.Image, "203785492", 1, true) then
+            instance.Image = ""
+        end
+    elseif instance:IsA("MeshPart") then
+        if string.find(instance.MeshId, "203785492", 1, true) then
+            instance:Destroy()
+        end
+    elseif instance:IsA("SpecialMesh") then
+        if string.find(instance.MeshId, "203785492", 1, true) then
+            instance.MeshId = ""
+        end
+    elseif instance:IsA("Animation") then
+        if string.find(instance.AnimationId, "203785492", 1, true) then
+            instance.AnimationId = ""
+        end
+    end
+end
+
+print("[Horror Game] Sewer V5 loaded: richer concrete and pipework, detailed pump machinery, flowing muddy water. No flashlight.")
