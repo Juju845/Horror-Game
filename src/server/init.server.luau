@@ -174,8 +174,8 @@ local function buildMainTunnel()
     -- Flat, continuous walking floor and tall side walls.
     part("Main_Walking_Floor", Vector3.new(240, 1, 18), Vector3.new(0, -10.5, 0), Enum.Material.Concrete, concrete, tunnel)
     part("Main_Left_Side_Wall", Vector3.new(240, 7, 1), Vector3.new(0, -6.5, -8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Right_Wall_A", Vector3.new(126, 7, 1), Vector3.new(-37, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
-    part("Main_Right_Wall_B", Vector3.new(194, 7, 1), Vector3.new(143, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Right_Wall_A", Vector3.new(146, 7, 1), Vector3.new(-47, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
+    part("Main_Right_Wall_B", Vector3.new(74, 7, 1), Vector3.new(83, -6.5, 8), Enum.Material.Concrete, concrete, tunnel)
 
     -- Continuous arched roof and repeating steel support frames.
     buildArch("X", 0, 0, -3, 7.5, 240, tunnel, "Main", Enum.Material.Concrete, concreteDark, 1.55)
@@ -201,7 +201,7 @@ local function buildMainTunnel()
     -- Cable tray under the roof, visibly attached with short hangers.
     cylinder("Main_Ceiling_Cable_Tray", 218, 0.55, Vector3.new(0, 2.2, -3.5), Enum.Material.Metal, metal, tunnel)
     for x = -102, 102, 24 do
-        part("Cable_Tray_Hanger", Vector3.new(0.5, 1.0, 0.55), Vector3.new(x, 2.7, -3.5), Enum.Material.Metal, rust, tunnel)
+        part("Cable_Tray_Hanger", Vector3.new(0.5, 1.5, 0.55), Vector3.new(x, 2.95, -3.5), Enum.Material.Metal, rust, tunnel)
     end
 
     for x = -92, 92, 30 do
@@ -259,7 +259,7 @@ local function buildBranchAndPumpRoom()
     for _, x in ipairs({27.2, 42.8}) do
         cylinder("Branch_Rusted_Pipe", 96, 0.75, Vector3.new(x, -5.2, 60), Enum.Material.Metal, rust, branch, Vector3.new(0, 90, 0))
         for z = 18, 102, 18 do
-            part("Branch_Pipe_Bracket", Vector3.new(1.15, 1.25, 0.9), Vector3.new(x, -5.2, z), Enum.Material.Metal, metal, branch)
+            part("Branch_Pipe_Bracket", Vector3.new(1.5, 1.25, 0.9), Vector3.new(x, -5.2, z), Enum.Material.Metal, metal, branch)
         end
     end
 
@@ -330,8 +330,11 @@ local function buildEntrance()
     for x = -113, -103, 1.5 do
         part("Entry_Grate_Slot", Vector3.new(0.12, 0.12, 10.2), Vector3.new(x, -9.57, 0), Enum.Material.Metal, concreteEdge, entrance)
     end
-    for z = -7, 7, 2 do
+    for _, z in ipairs({-5.4, 5.4}) do
         part("Entry_Safety_Rail", Vector3.new(12, 1.0, 0.18), Vector3.new(-108, -8.95, z), Enum.Material.Metal, rust, entrance)
+        for _, x in ipairs({-113, -108, -103}) do
+            part("Entry_Rail_Post", Vector3.new(0.28, 1.5, 0.28), Vector3.new(x, -9.2, z), Enum.Material.Metal, metal, entrance)
+        end
     end
     part("Entry_Sign_Back", Vector3.new(8, 3.2, 0.3), Vector3.new(-106, -2.6, -7.35), Enum.Material.Metal, concreteDark, entrance)
     local signGui = Instance.new("SurfaceGui")
