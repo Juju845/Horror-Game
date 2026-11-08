@@ -349,9 +349,9 @@ local function buildMainTunnel()
     buildArchRibs("X", 0, 0, -3, 7.02, ribPositions, tunnel, "Main")
 
     -- The main stream branches into the side corridors at both junctions.
-    addFlowingWater("Main_Channel", "X", Vector3.new(40, -9.94, 0), 312, 7.2, tunnel, 1)
-    addFlowingWater("Main_Right_Junction", "Z", Vector3.new(35, -9.94, 4.5), 12, 7.2, tunnel, 1)
-    addFlowingWater("Main_Left_Junction", "Z", Vector3.new(-50, -9.94, -4.5), 12, 7.2, tunnel, 1)
+    addFlowingWater("Main_Channel", "X", Vector3.new(40, -9.94, 0), 312, 8, tunnel, 1)
+    addFlowingWater("Main_Right_Junction", "Z", Vector3.new(35, -9.94, 4.5), 12, 8, tunnel, 1)
+    addFlowingWater("Main_Left_Junction", "Z", Vector3.new(-50, -9.94, -4.5), 12, 8, tunnel, 1)
 
     -- Wall pipes are split at both side-tunnel portals, so pipes never cross an entrance.
     for _, side in ipairs({-1, 1}) do
@@ -521,7 +521,7 @@ local function buildBranchAndPumpRoom()
     for z = 16, 104, 16 do table.insert(branchRibs, z) end
     buildArchRibs("Z", 35, 60, -3, 7.02, branchRibs, branch, "Branch")
 
-    addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 104, 7.2, branch, 1)
+    addFlowingWater("Branch_Channel", "Z", Vector3.new(35, -9.94, 60), 104, 8, branch, 1)
 
     for _, x in ipairs({27.2, 42.8}) do
         local branchPipe = cylinder("Branch_Rusted_Pipe", 96, 0.6, Vector3.new(x, -5.2, 60), Enum.Material.CorrodedMetal, Color3.fromRGB(83, 57, 43), branch, Vector3.new(0, 90, 0))
@@ -551,7 +551,7 @@ local function buildBranchAndPumpRoom()
     part("Pump_Entry_Right_Wall", Vector3.new(16, 14, 1), Vector3.new(52, -3.5, 110), Enum.Material.Concrete, concrete, room)
     part("Pump_Entry_Header", Vector3.new(18, 2, 1), Vector3.new(35, 2.5, 110), Enum.Material.Concrete, concreteDark, room)
 
-    addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 7.2, room, 1)
+    addFlowingWater("Pump_Room_Channel", "Z", Vector3.new(35, -9.94, 134), 48, 8, room, 1)
     part("Pump_Base", Vector3.new(13, 1.2, 10), Vector3.new(17.5, -9.35, 142), Enum.Material.Metal, rust, room)
     local filterTank = cylinder("Pump_Filter_Tank", 10, 7.5, Vector3.new(17.5, -4.1, 142), Enum.Material.CorrodedMetal, Color3.fromRGB(68, 75, 68), room, Vector3.new(0, 0, 90))
     filterTank.Reflectance = 0.12
@@ -637,7 +637,7 @@ local function buildWestServiceRoute()
         if z > -100 then table.insert(ribs, z) end
     end
     buildArchRibs("Z", -50, -62, -3, 7.02, ribs, route, "West_Leg")
-    addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 7.2, route, 1)
+    addFlowingWater("West_Leg_Channel", "Z", Vector3.new(-50, -9.94, -62), 108, 8, route, 1)
     for z = -96, -24, 30 do
         addCeilingLamp(Vector3.new(-50, 3.05, z), route, "West_Leg_Lamp", Color3.fromRGB(193, 208, 188), 1.9, 32)
     end
@@ -654,7 +654,7 @@ local function buildWestServiceRoute()
         if x < -64 or x > -40 then table.insert(turnRibs, x) end
     end
     buildArchRibs("X", -100, -108, -3, 7.02, turnRibs, route, "West_Turn")
-    addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 7.2, route, 1)
+    addFlowingWater("West_Turn_Channel", "X", Vector3.new(-100, -9.94, -108), 120, 8, route, 1)
     for x = -144, -64, 30 do
         addCeilingLamp(Vector3.new(x, 3.05, -108), route, "West_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
     end
@@ -670,7 +670,7 @@ local function buildWestServiceRoute()
     part("West_Chamber_Entry_Wall_South", Vector3.new(1, 14, 14), Vector3.new(-160, -3.5, -92), Enum.Material.Concrete, concrete, chamber)
     part("West_Chamber_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(-160, 2.5, -108), Enum.Material.Concrete, concreteDark, chamber)
 
-    addFlowingWater("West_Chamber_Runoff", "X", Vector3.new(-185, -9.94, -108), 50, 7.2, chamber, 1)
+    addFlowingWater("West_Chamber_Runoff", "X", Vector3.new(-185, -9.94, -108), 50, 8, chamber, 1)
     local wheelHub = cylinder("West_Main_Valve_Hub", 1.1, 3.1, Vector3.new(-204, -3.7, -108), Enum.Material.Metal, rust, chamber, Vector3.new(0, 90, 0))
     part("West_Valve_Wheel_Vertical", Vector3.new(0.35, 5, 0.35), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
     part("West_Valve_Wheel_Horizontal", Vector3.new(0.35, 0.35, 5), Vector3.new(-204.8, -3.7, -108), Enum.Material.Metal, yellow, chamber)
@@ -693,7 +693,7 @@ local function buildEastDrainExtension()
         if z < 248 then table.insert(ribs, z) end
     end
     buildArchRibs("Z", 35, 210, -3, 7.02, ribs, route, "East_Leg")
-    addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 7.2, route, 1)
+    addFlowingWater("East_Leg_Channel", "Z", Vector3.new(35, -9.94, 210), 106, 8, route, 1)
     for z = 180, 240, 30 do
         addCeilingLamp(Vector3.new(35, 3.05, z), route, "East_Leg_Lamp", Color3.fromRGB(193, 207, 188), 1.9, 32)
     end
@@ -710,7 +710,7 @@ local function buildEastDrainExtension()
         if x > 48 then table.insert(turnRibs, x) end
     end
     buildArchRibs("X", 85.5, 262, -3, 7.02, turnRibs, route, "East_Turn")
-    addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 7.2, route, 1)
+    addFlowingWater("East_Turn_Channel", "X", Vector3.new(85.5, -9.94, 262), 119, 8, route, 1)
     for x = 50, 130, 30 do
         addCeilingLamp(Vector3.new(x, 3.05, 262), route, "East_Turn_Lamp", Color3.fromRGB(190, 205, 186), 1.85, 30)
     end
@@ -726,7 +726,7 @@ local function buildEastDrainExtension()
     part("Sluice_Entry_South", Vector3.new(1, 14, 13), Vector3.new(135, -3.5, 277.5), Enum.Material.Concrete, concrete, chamber)
     part("Sluice_Entry_Header", Vector3.new(1, 2, 18), Vector3.new(135, 2.5, 262), Enum.Material.Concrete, concreteDark, chamber)
 
-    addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 50, 7.2, chamber, 1)
+    addFlowingWater("Sluice_Runoff", "X", Vector3.new(160, -9.94, 262), 50, 8, chamber, 1)
     local tank = cylinder("Sluice_Filter_Tank", 11, 8, Vector3.new(174, -4.1, 270), Enum.Material.Metal, Color3.fromRGB(67, 76, 69), chamber, Vector3.new(0, 0, 90))
     tank.Material = Enum.Material.CorrodedMetal
     part("Sluice_Tank_Cap", Vector3.new(8.5, 0.45, 8.5), Vector3.new(174, 1.05, 270), Enum.Material.Metal, rust, chamber)
