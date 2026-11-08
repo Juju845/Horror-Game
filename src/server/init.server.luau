@@ -558,8 +558,9 @@ local function buildWestServiceRoute()
 
     -- From the left-hand junction, the passage runs north and makes a clear 90-degree turn west.
     part("West_Leg_Floor", Vector3.new(18, 1, 108), Vector3.new(-50, -10.5, -62), Enum.Material.Concrete, concrete, route)
-    part("West_Leg_Left_Wall", Vector3.new(1, 7, 108), Vector3.new(-59, -6.5, -62), Enum.Material.Concrete, concrete, route)
-    part("West_Leg_Right_Wall", Vector3.new(1, 7, 108), Vector3.new(-41, -6.5, -62), Enum.Material.Concrete, concrete, route)
+    -- Stop the vertical side walls before the elbow so they do not block the 90-degree turn.
+    part("West_Leg_Left_Wall", Vector3.new(1, 7, 90), Vector3.new(-59, -6.5, -53), Enum.Material.Concrete, concrete, route)
+    part("West_Leg_Right_Wall", Vector3.new(1, 7, 90), Vector3.new(-41, -6.5, -53), Enum.Material.Concrete, concrete, route)
     buildArch("Z", -50, -62, -3, 7.5, 108, route, "West_Leg", Enum.Material.Concrete, concreteDark, 1.55)
     local ribs = {}
     for z = -108, -16, 16 do table.insert(ribs, z) end
@@ -568,8 +569,8 @@ local function buildWestServiceRoute()
     for z = -96, -24, 30 do
         addCeilingLamp(Vector3.new(-50, 3.05, z), route, "West_Leg_Lamp", Color3.fromRGB(193, 208, 188), 1.9, 32)
     end
-    cylinder("West_Leg_Service_Pipe", 98, 0.78, Vector3.new(-58, -5.2, -62), Enum.Material.Metal, rust, route, Vector3.new(0, 90, 0))
-    cylinder("West_Leg_Service_Pipe", 98, 0.78, Vector3.new(-42, -5.2, -62), Enum.Material.Metal, rust, route, Vector3.new(0, 90, 0))
+    cylinder("West_Leg_Service_Pipe", 90, 0.62, Vector3.new(-58, -5.2, -53), Enum.Material.CorrodedMetal, rust, route, Vector3.new(0, 90, 0))
+    cylinder("West_Leg_Service_Pipe", 90, 0.62, Vector3.new(-42, -5.2, -53), Enum.Material.CorrodedMetal, rust, route, Vector3.new(0, 90, 0))
 
     -- The bend is a full-width elbow: this tunnel heads west after the northbound run.
     part("West_Turn_Floor", Vector3.new(120, 1, 18), Vector3.new(-100, -10.5, -108), Enum.Material.Concrete, concrete, route)
@@ -609,8 +610,9 @@ local function buildEastDrainExtension()
 
     -- Continue straight out of the pump room, then turn east at the end.
     part("East_Leg_Floor", Vector3.new(18, 1, 108), Vector3.new(35, -10.5, 210), Enum.Material.Concrete, concrete, route)
-    part("East_Leg_Left_Wall", Vector3.new(1, 7, 108), Vector3.new(26, -6.5, 210), Enum.Material.Concrete, concrete, route)
-    part("East_Leg_Right_Wall", Vector3.new(1, 7, 108), Vector3.new(44, -6.5, 210), Enum.Material.Concrete, concrete, route)
+    -- End the vertical side walls at the elbow entrance; the turn itself stays open.
+    part("East_Leg_Left_Wall", Vector3.new(1, 7, 97), Vector3.new(26, -6.5, 204.5), Enum.Material.Concrete, concrete, route)
+    part("East_Leg_Right_Wall", Vector3.new(1, 7, 97), Vector3.new(44, -6.5, 204.5), Enum.Material.Concrete, concrete, route)
     buildArch("Z", 35, 210, -3, 7.5, 108, route, "East_Leg", Enum.Material.Concrete, concreteDark, 1.55)
     local ribs = {}
     for z = 168, 252, 16 do table.insert(ribs, z) end
@@ -780,4 +782,4 @@ for _, instance in ipairs(game:GetDescendants()) do
     end
 end
 
-print("[Horror Game] Sewer V5 loaded: richer concrete and pipework, detailed pump machinery, flowing muddy water. No flashlight.")
+print("[Horror Game] Sewer V6 loaded: Terrain Water, continuous channels, open 90-degree elbows, sealed tunnel ends and improved industrial lighting. No flashlight.")
