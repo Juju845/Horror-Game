@@ -415,6 +415,7 @@ RunService:BindToRenderStep("HorrorGamePlayerSystems", Enum.RenderPriority.Camer
         if stamina <= 0 then
             stamina = 0
             exhausted = true
+            sprintHeld = false
             sprinting = false
         end
     elseif not sprintHeld and now - lastStaminaUse >= REGEN_DELAY then
