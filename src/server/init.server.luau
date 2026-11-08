@@ -257,11 +257,15 @@ local function buildChannelFloor(name, axis, centerX, centerZ, length, totalWidt
     end
 end
 
-local function addRiverWallsX(name, first, last, centerZ, channelWidth, parent, crossings)
-    local gaps = {}
-    for _, x in ipairs(crossings or {}) do table.insert(gaps, {x, 8.4}) end
-    local segments = segmentsWithoutGaps(first, last, gaps)
+local function addRiverWallsX(name, first, last, centerZ, channelWidth, parent, crossings, southOpenings, northOpenings)
+    local commonGaps = {}
+    for _, x in ipairs(crossings or {}) do table.insert(commonGaps, {x, 8.4}) end
     for _, side in ipairs({-1, 1}) do
+        local gaps = {}
+        for _, gap in ipairs(commonGaps) do table.insert(gaps, gap) end
+        local sideOpenings = side < 0 and (southOpenings or {}) or (northOpenings or {})
+        for _, gap in ipairs(sideOpenings) do table.insert(gaps, gap) end
+        local segments = segmentsWithoutGaps(first, last, gaps)
         for _, segment in ipairs(segments) do
             local len = segment[2] - segment[1]
             local x = (segment[1] + segment[2]) / 2
@@ -502,7 +506,7 @@ local function addPipeRunX(name, first, last, centerZ, side, parent, gaps)
         local segmentStart, segmentEnd = segment[1], segment[2]
         local segmentLength = segmentEnd - segmentStart
         if segmentLength > 8 then
-            local z = centerZ + side * 14.2
+            local z = centerZ + side * 15.1
             local middle = (segmentStart + segmentEnd) / 2
             local mainPipe = cylinder(name .. "_Primary_Pressure_Main", segmentLength, 1.05, Vector3.new(middle, -4.6, z), Enum.Material.CorrodedMetal, C.rust, parent)
             mainPipe.Reflectance = 0.1
@@ -521,7 +525,7 @@ local function addPipeRunX(name, first, last, centerZ, side, parent, gaps)
 end
 
 local function addPipeRunZ(name, first, last, centerX, side, parent)
-    local x = centerX + side * 12.0
+    local x = centerX + side * 12.9
     local mainPipe = cylinder(name .. "_Primary_Pressure_Main", last - first, 0.98, Vector3.new(x, -4.6, (first + last) / 2), Enum.Material.CorrodedMetal, C.rust, parent, "Z")
     mainPipe.Reflectance = 0.1
     cylinder(name .. "_Secondary_Service_Line", last - first, 0.45, Vector3.new(x - side * 1.5, -2.7, (first + last) / 2), Enum.Material.Metal, C.steelMid, parent, "Z")
@@ -558,7 +562,7 @@ local function buildTunnelX(name, first, last, centerZ, width, parent, negativeG
     addVaultRibsX(name, first, last, centerZ, half - 0.32, model, skipped)
 
     addWater(name .. "_River", "X", (first + last) / 2, centerZ, last - first, channel, model)
-    addRiverWallsX(name, first, last, centerZ, channel, model, bridges)
+    addRiverWallsX(name, first, last, centerZ, channel, model, bridges, negativeGaps, positiveGaps)
     addBridgesX(name, bridges, centerZ, model)
 
     addWallPanelsX(name, first + 6, last - 6, centerZ, half, model, negativeGaps, positiveGaps)
@@ -793,7 +797,7 @@ local function buildMainSewer()
     addEndWallX("Main_Entrance_Seal", -140, 0, 17, main)
     addEndWallX("Main_Far_Seal", 140, 0, 17, main)
 
-    addIndustrialSign("Main_Concourse_ID", "DRAINAGE CONCOURSE  /  LINE 01", Vector3.new(-98, -2.3, -16.2), Vector3.new(13, 3.2, 0.22), Enum.NormalId.Front, main)
+    addIndustrialSign("Main_Concourse_ID", "DRAINAGE CONCOURSE  /  LINE 01", Vector3.new(-98, -2.3, -16.2), Vector3.new(13, 3.2, 0.22), Enum.NormalId.Back, main)
 
     -- Heavy maintenance supports at the entrance and along the main gallery.
     for x = -126, 126, 36 do
@@ -815,7 +819,7 @@ local function buildMainSewer()
 end
 
 local function buildWestRoute()
-    local branch = buildTunnelZ("West_Collector_Tunnel", -55, -17, -137, 30, world, {-42, -91, -122})
+    local branch = buildTunnelZ("West_Collector_Tunnel", -55, -17, -141, 30, world, {-42, -91, -126})
     -- Water flows directly from the main concourse into the collector tunnel.
     local hall = buildPumpHall()
     addIndustrialSign("West_Collector_ID", "COLLECTOR  /  PUMP ACCESS", Vector3.new(-70.0, -2.2, -18), Vector3.new(0.22, 3, 10), Enum.NormalId.Right, branch)
@@ -823,7 +827,7 @@ local function buildWestRoute()
 end
 
 local function buildEastRoute()
-    local branch = buildTunnelZ("East_Service_Tunnel", 65, 17, 137, 30, world, {45, 92, 121})
+    local branch = buildTunnelZ("East_Service_Tunnel", 65, 17, 150, 30, world, {45, 92, 133})
     -- A large cross-gallery receives the east branch through an opening in its south wall.
     local cross = buildTunnelX("East_Transfer_Gallery", 50, 190, 150, 34, world, {{65, 30}}, {}, {82, 142})
     addEndWallX("East_Transfer_West_End", 50, 150, 17, cross)
@@ -845,7 +849,7 @@ local function buildEntrance()
             part("Entry_Railing_Post", Vector3.new(0.22, 1.5, 0.22), Vector3.new(x, -9.1, z), Enum.Material.Metal, C.steelMid, entry)
         end
     end
-    addIndustrialSign("Entry_Portal_ID", "ACCESS 04  /  DRAINAGE", Vector3.new(-130, -2.1, -16.2), Vector3.new(11, 3, 0.25), Enum.NormalId.Front, entry)
+    addIndustrialSign("Entry_Portal_ID", "ACCESS 04  /  DRAINAGE", Vector3.new(-130, -2.1, -16.2), Vector3.new(11, 3, 0.25), Enum.NormalId.Back, entry)
 end
 
 local function placePlayer(player, character, spawn)
