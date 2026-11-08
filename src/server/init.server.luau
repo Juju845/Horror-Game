@@ -856,8 +856,8 @@ buildEntrance()
 local spawn = Instance.new("SpawnLocation")
 spawn.Name = "SewerSpawn"
 spawn.Size = Vector3.new(8, 1, 4)
-spawn.Position = Vector3.new(-108, 0, 6.5)
-spawn.CFrame = CFrame.new(-108, 0, 6.5) * CFrame.Angles(0, math.rad(-90), 0)
+spawn.Position = Vector3.new(-88, 0, 6.5)
+spawn.CFrame = CFrame.new(-88, 0, 6.5)
 spawn.Anchored = true
 spawn.Neutral = true
 spawn.Duration = 0
